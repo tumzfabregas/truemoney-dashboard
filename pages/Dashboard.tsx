@@ -116,17 +116,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           const res = await fetch('/api/balance');
           if (res.ok) {
               const data = await res.json();
-              // API returns { status: "ok", data: { balance: "20010", mobile_no: "..." } }
               if (data.status === 'ok' && data.data) {
                   const rawBalance = Number(data.data.balance || 0);
-                  // Assuming balance is in Satang based on standard TrueMoney API practices, but webhook was Satang. 
-                  // If display is 20010 for 200.10, divide by 100. If it's pure Baht, don't.
-                  // Usually 'balance' in API is Satang string.
+                  // API balance usually Satang string
                   setWalletBalance((rawBalance / 100).toLocaleString('th-TH', { minimumFractionDigits: 2 }));
                   setWalletPhone(formatPhoneNumber(data.data.mobile_no));
               }
           } else {
-              setWalletPhone(null); // Reset if failed
+              setWalletPhone(null);
           }
       } catch (e) { 
           console.error("Balance fetch error", e);
@@ -513,8 +510,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-5 shadow-lg flex flex-col md:flex-row justify-between items-stretch md:items-center gap-5">
                 
                 {/* Data Source Toggle & Balance */}
-                <div className="flex flex-col sm:flex-row items-center gap-4">
-                     <span className="text-xs font-bold text-gray-400 uppercase tracking-widest w-full sm:w-auto text-left">{t('source')}</span>
+                <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+                     <span className="text-xs font-bold text-gray-400 uppercase tracking-widest hidden md:inline">{t('source')}</span>
                      <div className="w-full sm:w-auto flex bg-[#2b2d30] p-1.5 rounded-xl border border-[#444746] shadow-inner">
                          {isAdmin ? (
                             <>
@@ -540,11 +537,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                          )}
                      </div>
                      
-                     {/* Wallet Balance Display */}
+                     {/* Wallet Balance Display (Mobile & Desktop) */}
                      {dataSource === 'live' && walletBalance && (
-                        <div className="w-full sm:w-auto flex items-center justify-center sm:justify-start gap-3 px-4 py-2.5 sm:py-2 rounded-xl bg-[#2b2d30] border border-[#444746] shadow-inner">
-                            <Wallet size={18} className="text-orange-500" />
-                            <span className="text-white font-mono font-bold text-sm tracking-wide">฿ {walletBalance}</span>
+                        <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-4 px-5 py-3 sm:py-2 rounded-xl bg-[#2b2d30] border border-[#444746] shadow-inner mt-1 sm:mt-0">
+                            <span className="text-xs text-gray-400 font-bold uppercase sm:hidden">Balance</span>
+                            <div className="flex items-center gap-2">
+                                <Wallet size={18} className="text-orange-500" />
+                                <span className="text-white font-mono font-bold text-sm tracking-wide">฿ {walletBalance}</span>
+                            </div>
                         </div>
                      )}
                 </div>
@@ -929,7 +929,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                       <button 
                                         onClick={() => handleDeleteUser(u.id)}
                                         className="p-2.5 hover:bg-red-500/20 rounded-lg text-red-400 hover:text-red-300 transition-colors border border-transparent hover:border-red-500/30"
-                                        disabled={u.username === 'admin'}
+                                        disabled={u.username.toLowerCase() === 'admin'}
                                       >
                                           <Trash2 size={18} />
                                       </button>

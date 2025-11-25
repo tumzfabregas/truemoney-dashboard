@@ -91,7 +91,7 @@ export const getUsers = (): User[] => getStoredUsers();
 
 export const addUser = (user: Omit<User, 'id'>) => {
     const users = getStoredUsers();
-    if (users.find(u => u.username === user.username)) {
+    if (users.find(u => u.username.toLowerCase() === user.username.toLowerCase())) {
         throw new Error('Username already exists');
     }
     const newUser = { ...user, id: Date.now().toString() };
@@ -105,8 +105,8 @@ export const updateUser = (id: string, updates: Partial<User>) => {
     const index = users.findIndex(u => u.id === id);
     if (index === -1) throw new Error('User not found');
     
-    // Prevent changing username to existing one
-    if (updates.username && users.some(u => u.username === updates.username && u.id !== id)) {
+    // Prevent changing username to existing one (Case Insensitive)
+    if (updates.username && users.some(u => u.username.toLowerCase() === updates.username!.toLowerCase() && u.id !== id)) {
         throw new Error('Username already taken');
     }
 
@@ -117,7 +117,7 @@ export const updateUser = (id: string, updates: Partial<User>) => {
 
 export const deleteUser = (id: string) => {
     let users = getStoredUsers();
-    if (users.find(u => u.id === id)?.username === 'admin') {
+    if (users.find(u => u.id === id)?.username.toLowerCase() === 'admin') {
          throw new Error('Cannot delete main admin');
     }
     users = users.filter(u => u.id !== id);
@@ -126,6 +126,7 @@ export const deleteUser = (id: string) => {
 
 export const authenticateUser = (username: string, password: string): User | null => {
     const users = getStoredUsers();
-    const user = users.find(u => u.username === username && u.password === password);
+    // Case insensitive username match
+    const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
     return user || null;
 };

@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // --- MongoDB Cached Connection Pattern (Best for Vercel) ---
-// Updated: Force Redeploy Timestamp v1.0.4 - 3 Months Retention
+// Updated: Force Redeploy Timestamp v1.1.4
 const MONGODB_URI = process.env.MONGODB_URI;
 
 // Global cache to prevent multiple connections in Serverless
@@ -256,24 +256,27 @@ app.get('/api/balance', async (req, res) => {
 
 // --- User Management ---
 
-// Login
+// Login (Case Insensitive)
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     try {
-        // Ensure Admin Exists before login check
         await ensureAdminExists();
 
         let user = null;
         if (isDbConnected()) {
-            user = await UserModel.findOne({ username, password });
+            // Case insensitive search
+            user = await UserModel.findOne({ 
+                username: { $regex: new RegExp(`^${username}$`, 'i') }, 
+                password: password 
+            });
         } else {
-            user = memoryUsers.find(u => u.username === username && u.password === password);
+            user = memoryUsers.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
         }
 
         if (user) {
             return res.json({
                 id: user.id || user._id.toString(),
-                username: user.username,
+                username: user.username, // Return original casing
                 role: user.role,
                 password: user.password
             });
@@ -295,14 +298,16 @@ app.get('/api/users', async (req, res) => {
     }
 });
 
-// Add User
+// Add User (Case Insensitive Check)
 app.post('/api/users', async (req, res) => {
     const { username, password, role } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
 
     try {
         if (isDbConnected()) {
-            const exists = await UserModel.findOne({ username });
+            const exists = await UserModel.findOne({ 
+                username: { $regex: new RegExp(`^${username}$`, 'i') } 
+            });
             if (exists) return res.status(400).json({ error: 'Username taken' });
             
             const newUser = await UserModel.create({
@@ -311,7 +316,9 @@ app.post('/api/users', async (req, res) => {
             });
             return res.json(newUser);
         } else {
-            if (memoryUsers.find(u => u.username === username)) return res.status(400).json({ error: 'Username taken' });
+            if (memoryUsers.find(u => u.username.toLowerCase() === username.toLowerCase())) {
+                return res.status(400).json({ error: 'Username taken' });
+            }
             const newUser = { id: Date.now().toString(), username, password, role: role || 'member' };
             memoryUsers.push(newUser);
             res.json(newUser);
@@ -328,7 +335,6 @@ app.put('/api/users/:id', async (req, res) => {
         if (isDbConnected()) {
             const update = { ...req.body };
             let updated = await UserModel.findOneAndUpdate({ id: id }, update, { new: true });
-            // Fallback for ObjectId
             if (!updated && mongoose.Types.ObjectId.isValid(id)) {
                  updated = await UserModel.findByIdAndUpdate(id, update, { new: true });
             }
@@ -351,12 +357,12 @@ app.delete('/api/users/:id', async (req, res) => {
     try {
         if (isDbConnected()) {
             const userToCheck = await UserModel.findOne({ id: id }) || (mongoose.Types.ObjectId.isValid(id) ? await UserModel.findById(id) : null);
-            if (userToCheck && userToCheck.username === 'admin') return res.status(400).json({ error: 'Cannot delete admin' });
+            if (userToCheck && userToCheck.username.toLowerCase() === 'admin') return res.status(400).json({ error: 'Cannot delete admin' });
             
             if (userToCheck) await UserModel.deleteOne({ _id: userToCheck._id });
         } else {
             const user = memoryUsers.find(u => u.id === id);
-            if (user && user.username === 'admin') return res.status(400).json({ error: 'Cannot delete admin' });
+            if (user && user.username.toLowerCase() === 'admin') return res.status(400).json({ error: 'Cannot delete admin' });
             memoryUsers = memoryUsers.filter(u => u.id !== id);
         }
         res.json({ status: 'deleted' });
