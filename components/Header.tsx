@@ -1,13 +1,14 @@
 import React from 'react';
-import { LogOut, User as UserIcon } from 'lucide-react';
+import { LogOut, User as UserIcon, KeyRound } from 'lucide-react';
 import { User } from '../types';
 
 interface HeaderProps {
   user: User | null;
   onLogout: () => void;
+  onChangePasswordClick?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
+const Header: React.FC<HeaderProps> = ({ user, onLogout, onChangePasswordClick }) => {
   return (
     <header className="bg-[#1a2234] border-b border-gray-700 py-3 px-6 flex justify-between items-center text-sm font-light tracking-wide shadow-md">
       <div className="text-white font-medium">
@@ -19,6 +20,16 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
             <span className="text-gray-300 flex items-center gap-2">
               <UserIcon size={14} /> {user.username}
             </span>
+            {onChangePasswordClick && (
+                <button 
+                    onClick={onChangePasswordClick}
+                    className="text-gray-400 hover:text-white transition-colors p-1"
+                    title="Change Password"
+                >
+                    <KeyRound size={14} />
+                </button>
+            )}
+            <div className="h-4 w-px bg-gray-700 mx-1"></div>
             <button 
               onClick={onLogout}
               className="text-gray-400 hover:text-white transition-colors flex items-center gap-1"

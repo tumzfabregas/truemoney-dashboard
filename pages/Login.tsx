@@ -72,10 +72,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             เข้าสู่ระบบ
           </button>
         </form>
-        <div className="mt-4 text-center text-xs text-gray-500">
-           <p>Default Admin: admin / admin</p>
-           <p>Default Staff: staff / 1234</p>
-        </div>
       </div>
     </div>
   );

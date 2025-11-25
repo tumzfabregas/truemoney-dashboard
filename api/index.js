@@ -48,10 +48,18 @@ app.post('/api/webhook/truemoney', (req, res) => {
             transactionData = token;
         }
 
+        // Amount logic: TrueMoney sends in Satang (e.g. 200 satang = 2 baht)
+        // We need to divide by 100 to store as Baht.
+        let amount = Number(transactionData.amount || 0);
+        
+        // Simple heuristic: If amount is integer and looks like satang (no decimals in payload usually), divide by 100
+        // However, the user specifically asked for this fix.
+        amount = amount / 100;
+
         const newTransaction = {
             id: `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             sender: transactionData.sender_mobile || transactionData.payer_mobile || 'Unknown',
-            amount: Number(transactionData.amount || 0),
+            amount: amount,
             date: transactionData.received_time || new Date().toISOString(),
             message: transactionData.message || 'Webhook P2P',
             type: 'INCOME'

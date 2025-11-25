@@ -156,8 +156,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         refreshTable();
     } else {
         // Trigger via API
+        // NOTE: TrueMoney sends Satang, so we multiply by 100 here to simulate correct behavior
+        // The backend will divide by 100.
         await triggerLiveWebhook({
-            amount: randomAmount,
+            amount: randomAmount * 100, 
             sender_mobile: randomSender,
             message: 'Live Simulation',
             received_time: new Date().toISOString()
@@ -365,7 +367,11 @@ let users = [
 app.post('/api/webhook/truemoney', (req, res) => {
     const token = req.body.message || req.body;
     // ... decoding logic ...
-    transactions.unshift(newTransaction);
+    
+    // Convert Satang to Baht
+    const amount = Number(data.amount) / 100;
+    
+    transactions.unshift({ ...newTxn, amount });
     res.status(200).send({ status: 'success' });
 });
 
