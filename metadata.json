@@ -1,0 +1,5 @@
+{
+  "name": "TrueMoney Webhook Dashboard",
+  "description": "A dark-themed dashboard to view TrueMoney Wallet transactions via Webhook integration, featuring authentication and transaction analysis.",
+  "requestFramePermissions": []
+}
