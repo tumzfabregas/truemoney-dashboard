@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Transaction, User } from '../types';
 import { fetchTransactions, simulateIncomingWebhook, clearAllData, getUsers, addUser, updateUser, deleteUser } from '../services/mockService';
-import { fetchLiveTransactions, triggerLiveWebhook, clearLiveTransactions } from '../services/apiService';
+import { fetchLiveTransactions, triggerLiveWebhook, clearLiveTransactions, fetchUsersApi, addUserApi, updateUserApi, deleteUserApi } from '../services/apiService';
 import { analyzeTransactions } from '../services/geminiService';
 import { RefreshCw, Sparkles, Server, Clipboard, Check, Clock, Power, Play, Code, Trash2, FileText, LayoutDashboard, Globe, Database, Lock, Users, Edit, Plus, X, Wallet, BellRing, History, Smartphone, LayoutGrid, KeyRound } from 'lucide-react';
 
@@ -89,7 +89,29 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           const data = await fetchLiveTransactions();
           // Sort client-side for simple display
           data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          setTransactions(data);
+          
+          // Client-Side Caching Logic
+          const cachedKey = 'tm_cached_transactions';
+          const cached = localStorage.getItem(cachedKey);
+          let mergedData = data;
+          
+          if (cached) {
+              const cachedData: Transaction[] = JSON.parse(cached);
+              // Merge: Create a Map by ID
+              const dataMap = new Map();
+              cachedData.forEach(item => dataMap.set(item.id, item)); // Old data
+              data.forEach(item => dataMap.set(item.id, item)); // New data overwrites old
+              
+              mergedData = Array.from(dataMap.values());
+              mergedData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          }
+          
+          // Update Cache
+          if (mergedData.length > 0) {
+              localStorage.setItem(cachedKey, JSON.stringify(mergedData.slice(0, 100))); // Cache max 100
+          }
+          
+          setTransactions(mergedData);
       }
       setLastUpdated(new Date());
     } catch (err) {
@@ -100,15 +122,27 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   }, [currentPage, dataSource]);
 
   // Load Users & Secret
-  const loadUsers = () => {
-      setUsersList(getUsers());
-  };
+  const loadUsers = useCallback(async () => {
+      try {
+          if (dataSource === 'live') {
+              const users = await fetchUsersApi();
+              setUsersList(users);
+          } else {
+              setUsersList(getUsers());
+          }
+      } catch (e) {
+          console.error("Failed to load users", e);
+      }
+  }, [dataSource]);
+
+  // Reload users when datasource changes
+  useEffect(() => {
+      if (isAdmin) loadUsers();
+  }, [dataSource, isAdmin, loadUsers]);
 
   // Initial Load & Auto Refresh Logic
   useEffect(() => {
     loadData();
-    if (isAdmin) loadUsers();
-
     // Load secret
     const storedSecret = localStorage.getItem('tm_verification_secret');
     if (storedSecret) {
@@ -125,7 +159,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [loadData, isAutoRefresh, isAdmin]);
+  }, [loadData, isAutoRefresh]);
 
   const toggleAutoRefresh = () => {
     setIsAutoRefresh(prev => !prev);
@@ -133,14 +167,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   const handleManualRefresh = () => {
     loadData();
+    if (isAdmin && activeTab === 'users') loadUsers();
   };
 
   const handleClearData = async () => {
-      if (dataSource === 'mock') {
-          clearAllData();
-      } else {
-          await clearLiveTransactions();
-          loadData();
+      if (confirm('คุณต้องการล้างข้อมูลทั้งหมดใช่หรือไม่?')) {
+          if (dataSource === 'mock') {
+              clearAllData();
+          } else {
+              await clearLiveTransactions();
+              localStorage.removeItem('tm_cached_transactions'); // Clear Client Cache
+              loadData();
+          }
       }
   }
 
@@ -155,16 +193,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         simulateIncomingWebhook(randomAmount, randomSender);
         refreshTable();
     } else {
-        // Trigger via API
-        // NOTE: TrueMoney sends Satang, so we multiply by 100 here to simulate correct behavior
-        // The backend will divide by 100.
+        // Trigger via API (Send Satang)
         await triggerLiveWebhook({
             amount: randomAmount * 100, 
             sender_mobile: randomSender,
             message: 'Live Simulation',
             received_time: new Date().toISOString()
         });
-        // Wait a bit for server to process then refresh
         setTimeout(loadData, 500);
     }
   };
@@ -301,15 +336,26 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       setIsUserModalOpen(true);
   };
 
-  const handleUserSubmit = (e: React.FormEvent) => {
+  const handleUserSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       setUserFormError('');
       try {
-          if (editingUser) {
-              updateUser(editingUser.id, userForm);
+          if (dataSource === 'live') {
+              // Call API
+               if (editingUser) {
+                  await updateUserApi(editingUser.id, userForm);
+              } else {
+                  await addUserApi(userForm);
+              }
           } else {
-              addUser(userForm);
+              // Call Mock
+              if (editingUser) {
+                  updateUser(editingUser.id, userForm);
+              } else {
+                  addUser(userForm);
+              }
           }
+          
           loadUsers();
           setIsUserModalOpen(false);
       } catch (err: any) {
@@ -317,10 +363,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       }
   };
 
-  const handleDeleteUser = (id: string) => {
+  const handleDeleteUser = async (id: string) => {
       if (confirm('ต้องการลบผู้ใช้งานนี้ใช่หรือไม่?')) {
           try {
-              deleteUser(id);
+              if (dataSource === 'live') {
+                  await deleteUserApi(id);
+              } else {
+                  deleteUser(id);
+              }
               loadUsers();
           } catch (err: any) {
               alert(err.message);
@@ -351,55 +401,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 import express from 'express';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+// ... (Middleware & DB Connection) ...
 
-// In-Memory Database (Reset on restart)
-let transactions = [];
-let users = [
-    { id: '1', username: 'admin', password: 'admin', role: 'admin' },
-    { id: '2', username: 'staff', password: '1234', role: 'member' }
-];
+// Login Route
+app.post('/api/login', async (req, res) => {
+   // ... check MongoDB ...
+});
 
-// --- Webhook ---
+// Webhook Route
 app.post('/api/webhook/truemoney', (req, res) => {
-    const token = req.body.message || req.body;
-    // ... decoding logic ...
-    
-    // Convert Satang to Baht
-    const amount = Number(data.amount) / 100;
-    
-    transactions.unshift({ ...newTxn, amount });
-    res.status(200).send({ status: 'success' });
-});
-
-app.get('/api/transactions', (req, res) => {
-    res.json(transactions);
-});
-
-// --- User Management ---
-app.get('/api/users', (req, res) => res.json(users));
-
-app.post('/api/users', (req, res) => {
-    const { username, password, role } = req.body;
-    if (users.find(u => u.username === username)) return res.status(400).json({error: 'Exists'});
-    const newUser = { id: Date.now().toString(), username, password, role };
-    users.push(newUser);
-    res.json(newUser);
-});
-
-app.put('/api/users/:id', (req, res) => {
-    const idx = users.findIndex(u => u.id === req.params.id);
-    if (idx === -1) return res.status(404).json({error: 'Not found'});
-    users[idx] = { ...users[idx], ...req.body };
-    res.json(users[idx]);
-});
-
-app.delete('/api/users/:id', (req, res) => {
-    users = users.filter(u => u.id !== req.params.id);
-    res.json({status: 'deleted'});
+    // ... logic to save transaction to MongoDB ...
 });
 
 export default app;
