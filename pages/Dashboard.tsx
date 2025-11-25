@@ -404,14 +404,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         <div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
                 <Wallet className="text-orange-500" />
-                <span>TrueMoney <span className="text-slate-500 font-light hidden xs:inline">/ Webhook Dashboard</span></span>
+                <span>TrueMoney <span className="text-orange-500 font-light hidden xs:inline">/ Dashboard</span></span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-400 mt-1">{t('dashboard_subtitle')}</p>
         </div>
 
-        {/* Navigation Tabs (Glass Style) */}
+        {/* Navigation Tabs (Dark Style) */}
         {isAdmin && (
-            <div className="w-full md:w-auto flex bg-slate-800/50 p-1 rounded-xl border border-slate-700/50 backdrop-blur-md overflow-x-auto no-scrollbar">
+            <div className="w-full md:w-auto flex bg-[#1f2937] p-1 rounded-xl border border-slate-700 shadow-sm overflow-x-auto no-scrollbar">
                 {[
                     { id: 'dashboard', label: t('tab_dashboard'), icon: LayoutDashboard },
                     { id: 'services', label: t('tab_services'), icon: LayoutGrid },
@@ -423,8 +423,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                         onClick={() => setActiveTab(tab.id as any)}
                         className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
                             activeTab === tab.id 
-                            ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' 
-                            : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                            ? 'bg-orange-600 text-white shadow-md shadow-orange-500/20' 
+                            : 'text-slate-400 hover:text-white hover:bg-slate-700'
                         }`}
                     >
                         <tab.icon size={16} /> <span className="hidden xs:inline">{tab.label}</span>
@@ -438,29 +438,29 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         <div className="space-y-4 sm:space-y-6">
             
             {/* Control Bar */}
-            <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-4 backdrop-blur-sm shadow-xl flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
+            <div className="bg-[#1f2937] border border-slate-700 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
                 
                 {/* Data Source Toggle */}
                 <div className="flex flex-col sm:flex-row items-center gap-3">
                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider w-full sm:w-auto text-left">{t('source')}</span>
-                     <div className="w-full sm:w-auto flex bg-slate-900/50 p-1 rounded-lg border border-slate-700/50">
+                     <div className="w-full sm:w-auto flex bg-slate-800 p-1 rounded-lg border border-slate-700">
                          {isAdmin ? (
                             <>
                                 <button 
                                     onClick={() => { setDataSource('mock'); setCurrentPage(1); }}
-                                    className={`flex-1 sm:flex-none justify-center flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${dataSource === 'mock' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                                    className={`flex-1 sm:flex-none justify-center flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${dataSource === 'mock' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
                                 >
                                     <Database size={12} /> {t('mock')}
                                 </button>
                                 <button 
                                     onClick={() => { setDataSource('live'); setCurrentPage(1); }}
-                                    className={`flex-1 sm:flex-none justify-center flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${dataSource === 'live' ? 'bg-green-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                                    className={`flex-1 sm:flex-none justify-center flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${dataSource === 'live' ? 'bg-green-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
                                 >
                                     <Globe size={12} /> {t('live')}
                                 </button>
                             </>
                          ) : (
-                             <div className="w-full flex justify-center items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md bg-green-500/10 text-green-400 border border-green-500/20">
+                             <div className="w-full flex justify-center items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md bg-green-900/30 text-green-400 border border-green-800">
                                  <Globe size={12} /> {t('live')}
                              </div>
                          )}
@@ -469,7 +469,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
                 {/* Status & Actions */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 text-sm">
-                    <div className="hidden lg:flex items-center gap-2 text-slate-400 bg-slate-900/30 px-3 py-1.5 rounded-lg border border-slate-800">
+                    <div className="hidden lg:flex items-center gap-2 text-slate-400 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
                         <Clock size={14} className="text-orange-500"/> 
                         <span className="text-xs font-mono">{lastUpdated.toLocaleTimeString('th-TH')}</span>
                     </div>
@@ -477,7 +477,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     <div className="grid grid-cols-2 sm:flex gap-3">
                         <button 
                             onClick={toggleAutoRefresh}
-                            className={`flex justify-center items-center gap-2 px-3 py-2 sm:py-1.5 rounded-lg border transition-all text-xs font-medium ${isAutoRefresh ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}
+                            className={`flex justify-center items-center gap-2 px-3 py-2 sm:py-1.5 rounded-lg border transition-all text-xs font-medium ${isAutoRefresh ? 'bg-green-900/30 border-green-800 text-green-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}
                         >
                             <Power size={12} /> {isAutoRefresh ? t('auto_on') : t('auto_off')}
                         </button>
@@ -503,9 +503,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             </div>
 
             {/* Main Table Card */}
-            <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden backdrop-blur-sm shadow-xl">
+            <div className="bg-[#1f2937] border border-slate-700 rounded-2xl overflow-hidden shadow-sm">
                 {/* Desktop Table Header */}
-                <div className="hidden md:grid grid-cols-12 gap-4 p-4 bg-slate-900/50 border-b border-slate-700/50 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                <div className="hidden md:grid grid-cols-12 gap-4 p-4 bg-slate-800 border-b border-slate-700 text-xs font-bold text-slate-400 uppercase tracking-wider">
                     <div className="col-span-3">{t('sender')}</div>
                     <div className="col-span-3 text-right">{t('amount')}</div>
                     <div className="col-span-3 text-center">{t('date')}</div>
@@ -515,27 +515,27 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 {/* Table Body */}
                 <div className="relative min-h-[400px]">
                     {loading && !isAutoRefresh && (
-                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px]">
+                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/50 backdrop-blur-[2px]">
                             <RefreshCw className="animate-spin text-orange-500" size={32} />
                         </div>
                     )}
 
                     {displayedTransactions.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-64 text-slate-500">
-                            <div className="bg-slate-800/50 p-4 rounded-full mb-3">
+                            <div className="bg-slate-800 p-4 rounded-full mb-3 border border-slate-700">
                                 <History size={32} />
                             </div>
-                            <span className="font-medium">{t('no_transactions')}</span>
+                            <span className="font-medium text-slate-400">{t('no_transactions')}</span>
                             <span className="text-xs mt-1">{t('waiting_webhook')}</span>
                         </div>
                     ) : (
-                        <div className="divide-y divide-slate-700/30">
+                        <div className="divide-y divide-slate-700">
                             {displayedTransactions.map((tx) => (
                                 <React.Fragment key={tx.id}>
                                     {/* Desktop Row */}
-                                    <div className="hidden md:grid grid-cols-12 gap-4 p-4 items-center hover:bg-white/5 transition-colors group">
+                                    <div className="hidden md:grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-800/50 transition-colors group">
                                         <div className="col-span-3 flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-300 font-bold text-xs">
+                                            <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 font-bold text-xs border border-slate-700">
                                                 {tx.sender.slice(0, 2)}
                                             </div>
                                             <span className="text-sm font-medium text-slate-200 font-mono tracking-wide">
@@ -543,23 +543,23 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                             </span>
                                         </div>
                                         <div className="col-span-3 text-right">
-                                            <span className="inline-block px-2 py-1 rounded bg-green-500/10 text-green-400 border border-green-500/20 text-sm font-bold font-mono">
+                                            <span className="inline-block px-2 py-1 rounded bg-green-900/30 text-green-400 border border-green-800 text-sm font-bold font-mono">
                                                 +{tx.amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                                             </span>
                                         </div>
-                                        <div className="col-span-3 text-center text-xs text-slate-400 font-mono">
+                                        <div className="col-span-3 text-center text-xs text-slate-500 font-mono">
                                             {formatDate(tx.date)}
                                         </div>
-                                        <div className="col-span-3 text-sm text-slate-300 truncate opacity-80 group-hover:opacity-100">
+                                        <div className="col-span-3 text-sm text-slate-400 truncate opacity-80 group-hover:opacity-100">
                                             {tx.message}
                                         </div>
                                     </div>
 
                                     {/* Mobile Card Row */}
-                                    <div className="md:hidden p-4 flex flex-col gap-3 hover:bg-white/5 transition-colors">
+                                    <div className="md:hidden p-4 flex flex-col gap-3 hover:bg-slate-800/50 transition-colors border-b border-slate-700 last:border-0">
                                         <div className="flex justify-between items-start">
                                             <div className="flex items-center gap-2">
-                                                 <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-300 font-bold text-xs">
+                                                 <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 font-bold text-xs border border-slate-700">
                                                     {tx.sender.slice(0, 2)}
                                                 </div>
                                                 <div className="flex flex-col">
@@ -571,12 +571,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <span className="px-2 py-1 rounded bg-green-500/10 text-green-400 border border-green-500/20 text-sm font-bold font-mono">
+                                            <span className="px-2 py-1 rounded bg-green-900/30 text-green-400 border border-green-800 text-sm font-bold font-mono">
                                                 +{tx.amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                                             </span>
                                         </div>
-                                        <div className="pl-10 text-sm text-slate-300 break-words bg-slate-900/30 p-2 rounded-lg border border-slate-700/30">
-                                            <span className="text-xs text-slate-500 block mb-1 uppercase tracking-wider">{t('message')}:</span>
+                                        <div className="pl-10 text-sm text-slate-400 break-words bg-slate-900/50 p-2 rounded-lg border border-slate-800">
+                                            <span className="text-xs text-slate-600 block mb-1 uppercase tracking-wider">{t('message')}:</span>
                                             {tx.message || "-"}
                                         </div>
                                     </div>
@@ -587,8 +587,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 </div>
 
                 {/* Pagination Footer */}
-                <div className="p-4 border-t border-slate-700/50 bg-slate-900/30 flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div className="text-xs text-slate-500 text-center sm:text-left">
+                <div className="p-4 border-t border-slate-700 bg-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div className="text-xs text-slate-400 text-center sm:text-left">
                         {t('showing')} {displayedTransactions.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} {t('to')} {Math.min(currentPage * ITEMS_PER_PAGE, transactions.length)} {t('of')} {transactions.length} {t('entries')}
                     </div>
                     
@@ -596,19 +596,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                         <button 
                             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                             disabled={currentPage === 1 || loading}
-                            className="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            className="p-2 rounded-lg bg-[#1f2937] border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         >
                             <ChevronLeft size={16} />
                         </button>
                         
-                        <div className="px-4 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-mono text-slate-300">
+                        <div className="px-4 py-1.5 rounded-lg bg-[#1f2937] border border-slate-700 text-xs font-mono text-slate-300">
                             {t('page')} {currentPage} / {Math.max(totalPages, 1)}
                         </div>
 
                         <button 
                             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                             disabled={currentPage >= totalPages || loading}
-                            className="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            className="p-2 rounded-lg bg-[#1f2937] border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         >
                             <ChevronRight size={16} />
                         </button>
@@ -621,18 +621,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
                     
                     {/* Left Panel: Configuration */}
-                    <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-4 sm:p-6 backdrop-blur-sm">
+                    <div className="bg-[#1f2937] border border-slate-700 rounded-2xl p-4 sm:p-6 shadow-sm">
                         <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
                             <Server size={16} className="text-blue-500" /> {t('config_sim')}
                         </h3>
 
                         <div className="space-y-4">
                             {/* Simulator */}
-                            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
-                                <label className="text-xs text-slate-500 font-bold uppercase mb-2 block">{t('simulator')}</label>
+                            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                                <label className="text-xs text-slate-400 font-bold uppercase mb-2 block">{t('simulator')}</label>
                                 <button 
                                     onClick={handleSimulateWebhook}
-                                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white text-sm font-medium py-2.5 rounded-lg shadow-lg shadow-orange-900/20 transition-all active:scale-95"
+                                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white text-sm font-medium py-2.5 rounded-lg shadow-md shadow-orange-500/20 transition-all active:scale-95"
                                 >
                                     <Play size={16} fill="currentColor" /> {t('simulate_btn')}
                                 </button>
@@ -642,36 +642,36 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                             </div>
 
                             {/* Setup Info */}
-                            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
+                            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
                                 <div className="flex justify-between items-center mb-2">
-                                    <label className="text-xs text-slate-500 font-bold uppercase">{t('setup_info')}</label>
-                                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded ${dbStatus.includes('Connected') ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+                                    <label className="text-xs text-slate-400 font-bold uppercase">{t('setup_info')}</label>
+                                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded ${dbStatus.includes('Connected') ? 'bg-green-900/30 text-green-400 border border-green-800' : 'bg-red-900/30 text-red-400 border border-red-800'}`}>
                                         {dbStatus}
                                     </span>
                                 </div>
                                 
                                 <div className="flex gap-2 mb-3">
-                                    <div className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-400 overflow-hidden whitespace-nowrap text-ellipsis">
+                                    <div className="flex-1 bg-[#111827] border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-slate-400 overflow-hidden whitespace-nowrap text-ellipsis">
                                         {dataSource === 'live' ? `${currentOrigin}/api/webhook/truemoney` : 'Switch to Live Mode to see URL'}
                                     </div>
-                                    <button onClick={handleCopyEndpoint} className="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2 rounded-lg border border-slate-700 transition-colors">
+                                    <button onClick={handleCopyEndpoint} className="bg-[#111827] hover:bg-slate-700 text-slate-400 p-2 rounded-lg border border-slate-700 transition-colors">
                                         {copied ? <Check size={16} className="text-green-500"/> : <Clipboard size={16}/>}
                                     </button>
                                 </div>
 
-                                <div className="pt-3 border-t border-slate-800">
-                                    <label className="text-[10px] text-slate-500 font-bold uppercase mb-1 block">{t('verification_secret')}</label>
+                                <div className="pt-3 border-t border-slate-700">
+                                    <label className="text-[10px] text-slate-400 font-bold uppercase mb-1 block">{t('verification_secret')}</label>
                                     <div className="flex flex-col sm:flex-row gap-2">
                                         <input 
                                             type="text" 
                                             value={verificationSecret}
                                             onChange={(e) => { setVerificationSecret(e.target.value); setIsVerified(false); }}
                                             placeholder={t('verification_placeholder')}
-                                            className="flex-1 bg-slate-950 border border-slate-800 text-xs text-slate-300 px-3 py-2 rounded-lg focus:outline-none focus:border-green-500/50 transition-colors font-mono"
+                                            className="flex-1 bg-[#111827] border border-slate-700 text-xs text-slate-300 px-3 py-2 rounded-lg focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors font-mono"
                                         />
                                         <button 
                                             onClick={handleSaveSecret}
-                                            className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1 ${isVerified ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'bg-slate-700 hover:bg-slate-600 text-white'}`}
+                                            className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1 ${isVerified ? 'bg-green-600 text-white shadow-md shadow-green-900' : 'bg-slate-700 hover:bg-slate-600 text-white'}`}
                                         >
                                             {isVerified ? <Check size={14} /> : t('save')}
                                         </button>
@@ -682,24 +682,24 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     </div>
 
                     {/* Right Panel: Tester & AI */}
-                    <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-4 sm:p-6 backdrop-blur-sm">
+                    <div className="bg-[#1f2937] border border-slate-700 rounded-2xl p-4 sm:p-6 shadow-sm">
                         <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
                             <Code size={16} className="text-purple-500" /> {t('advanced_tools')}
                         </h3>
 
                         <div className="space-y-4">
                             {/* JSON Tester */}
-                            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
+                            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
                                 <div className="flex justify-between items-center mb-2">
-                                    <label className="text-xs text-slate-500 font-bold uppercase">{t('payload_tester')}</label>
+                                    <label className="text-xs text-slate-400 font-bold uppercase">{t('payload_tester')}</label>
                                 </div>
                                 <textarea 
                                     value={jsonInput}
                                     onChange={(e) => setJsonInput(e.target.value)}
                                     placeholder={t('payload_placeholder')}
-                                    className="w-full bg-slate-950 border border-slate-800 text-slate-300 text-xs p-3 rounded-lg h-24 focus:border-orange-500/50 focus:outline-none font-mono resize-none mb-2"
+                                    className="w-full bg-[#111827] border border-slate-700 text-slate-300 text-xs p-3 rounded-lg h-24 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono resize-none mb-2 placeholder:text-slate-600"
                                 />
-                                {jsonError && <p className="text-red-400 text-xs mb-2 bg-red-900/20 p-2 rounded border border-red-900/30">{jsonError}</p>}
+                                {jsonError && <p className="text-red-400 text-xs mb-2 bg-red-900/30 p-2 rounded border border-red-800">{jsonError}</p>}
                                 <button 
                                     onClick={handlePayloadTest}
                                     className="w-full flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium py-2 rounded-lg transition-colors"
@@ -709,10 +709,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                             </div>
 
                             {/* AI Analysis */}
-                            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
+                            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
                                 <div className="flex justify-between items-center mb-2">
-                                    <label className="text-xs text-slate-500 font-bold uppercase flex items-center gap-1">
-                                        <Sparkles size={12} className="text-purple-400" /> {t('ai_analysis')}
+                                    <label className="text-xs text-slate-400 font-bold uppercase flex items-center gap-1">
+                                        <Sparkles size={12} className="text-purple-500" /> {t('ai_analysis')}
                                     </label>
                                     <button 
                                         onClick={handleGeminiAnalysis}
@@ -722,7 +722,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                         {analyzing ? t('thinking') : t('analyze_btn')}
                                     </button>
                                 </div>
-                                <div className="bg-slate-950 p-3 rounded-lg min-h-[60px] text-xs text-slate-300 border border-slate-800 leading-relaxed italic">
+                                <div className="bg-[#111827] p-3 rounded-lg min-h-[60px] text-xs text-slate-400 border border-slate-700 leading-relaxed italic">
                                     {analysis || "AI analysis of your transactions will appear here..."}
                                 </div>
                             </div>
@@ -738,96 +738,96 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       {activeTab === 'services' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in zoom-in-95 duration-300">
             <div 
-                className="bg-slate-800/40 p-6 rounded-2xl border border-slate-700/50 flex flex-col items-center text-center hover:border-orange-500/50 hover:bg-slate-800/60 transition-all cursor-pointer group backdrop-blur-sm"
+                className="bg-[#1f2937] p-6 rounded-2xl border border-slate-700 flex flex-col items-center text-center hover:border-orange-500/50 hover:shadow-lg transition-all cursor-pointer group"
                 onClick={() => setActiveTab('dashboard')}
             >
-                <div className="bg-orange-500/10 p-5 rounded-full mb-4 text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-all shadow-lg shadow-orange-900/20">
+                <div className="bg-orange-900/20 p-5 rounded-full mb-4 text-orange-500 group-hover:bg-orange-600 group-hover:text-white transition-all shadow-sm">
                     <BellRing size={36} />
                 </div>
-                <h3 className="text-white font-bold mb-2">{t('svc_incoming')}</h3>
+                <h3 className="text-slate-200 font-bold mb-2">{t('svc_incoming')}</h3>
                 <p className="text-sm text-slate-400 mb-4">{t('svc_incoming_desc')}</p>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-green-500/20 text-green-400 px-2 py-1 rounded-full border border-green-500/20">{t('active')}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-green-900/30 text-green-400 px-2 py-1 rounded-full border border-green-800">{t('active')}</span>
             </div>
             
-            <div className="bg-slate-800/40 p-6 rounded-2xl border border-slate-700/50 flex flex-col items-center text-center opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all cursor-pointer">
-                <div className="bg-blue-500/10 p-5 rounded-full mb-4 text-blue-500">
+            <div className="bg-[#1f2937] p-6 rounded-2xl border border-slate-700 flex flex-col items-center text-center opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all cursor-pointer">
+                <div className="bg-blue-900/20 p-5 rounded-full mb-4 text-blue-500">
                     <Smartphone size={36} />
                 </div>
-                <h3 className="text-white font-bold mb-2">{t('svc_outgoing')}</h3>
+                <h3 className="text-slate-200 font-bold mb-2">{t('svc_outgoing')}</h3>
                 <p className="text-sm text-slate-400 mb-4">{t('svc_outgoing_desc')}</p>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-700 text-slate-400 px-2 py-1 rounded-full border border-slate-600">{t('soon')}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-800 text-slate-400 px-2 py-1 rounded-full border border-slate-700">{t('soon')}</span>
             </div>
 
             <div 
-                className="bg-slate-800/40 p-6 rounded-2xl border border-slate-700/50 flex flex-col items-center text-center hover:border-green-500/50 hover:bg-slate-800/60 transition-all cursor-pointer group backdrop-blur-sm"
+                className="bg-[#1f2937] p-6 rounded-2xl border border-slate-700 flex flex-col items-center text-center hover:border-green-500/50 hover:shadow-lg transition-all cursor-pointer group"
                 onClick={handleCheckBalance}
             >
-                <div className="bg-green-500/10 p-5 rounded-full mb-4 text-green-500 group-hover:bg-green-500 group-hover:text-white transition-all shadow-lg shadow-green-900/20">
+                <div className="bg-green-900/20 p-5 rounded-full mb-4 text-green-500 group-hover:bg-green-600 group-hover:text-white transition-all shadow-sm">
                     <Wallet size={36} />
                 </div>
-                <h3 className="text-white font-bold mb-2">{t('svc_balance')}</h3>
+                <h3 className="text-slate-200 font-bold mb-2">{t('svc_balance')}</h3>
                 <p className="text-sm text-slate-400 mb-4">{t('svc_balance_desc')}</p>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full border border-blue-500/20">{t('demo')}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-900/30 text-blue-400 px-2 py-1 rounded-full border border-blue-800">{t('demo')}</span>
             </div>
 
             <div 
-                className="bg-slate-800/40 p-6 rounded-2xl border border-slate-700/50 flex flex-col items-center text-center hover:border-purple-500/50 hover:bg-slate-800/60 transition-all cursor-pointer group backdrop-blur-sm"
+                className="bg-[#1f2937] p-6 rounded-2xl border border-slate-700 flex flex-col items-center text-center hover:border-purple-500/50 hover:shadow-lg transition-all cursor-pointer group"
                 onClick={handleCheckLastTx}
             >
-                <div className="bg-purple-500/10 p-5 rounded-full mb-4 text-purple-500 group-hover:bg-purple-500 group-hover:text-white transition-all shadow-lg shadow-purple-900/20">
+                <div className="bg-purple-900/20 p-5 rounded-full mb-4 text-purple-500 group-hover:bg-purple-600 group-hover:text-white transition-all shadow-sm">
                     <History size={36} />
                 </div>
-                <h3 className="text-white font-bold mb-2">{t('svc_last_tx')}</h3>
+                <h3 className="text-slate-200 font-bold mb-2">{t('svc_last_tx')}</h3>
                 <p className="text-sm text-slate-400 mb-4">{t('svc_last_tx_desc')}</p>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 px-2 py-1 rounded-full border border-purple-500/20">{t('api')}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-purple-900/30 text-purple-400 px-2 py-1 rounded-full border border-purple-800">{t('api')}</span>
             </div>
         </div>
       )}
 
       {/* Users Tab */}
       {activeTab === 'users' && (
-          <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-4 sm:p-6 backdrop-blur-sm shadow-xl animate-in fade-in">
+          <div className="bg-[#1f2937] border border-slate-700 rounded-2xl p-4 sm:p-6 shadow-sm animate-in fade-in">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-slate-200 flex items-center gap-2">
                       <Users className="text-orange-500" size={24} /> {t('user_management')}
                   </h2>
                   <button 
                     onClick={() => openUserModal()}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-lg shadow-orange-900/20"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-md shadow-orange-900"
                   >
                       <Plus size={18} /> {t('add_user')}
                   </button>
               </div>
 
-              <div className="overflow-hidden rounded-xl border border-slate-700/50">
+              <div className="overflow-hidden rounded-xl border border-slate-700">
                   <table className="w-full text-left border-collapse">
                       <thead>
-                          <tr className="bg-slate-900/80 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                          <tr className="bg-slate-800 text-slate-400 text-xs font-bold uppercase tracking-wider">
                               <th className="p-4">{t('username')}</th>
                               <th className="p-4 hidden sm:table-cell">{t('role')}</th>
                               <th className="p-4 text-right"></th>
                           </tr>
                       </thead>
-                      <tbody className="text-sm text-slate-300 divide-y divide-slate-700/50 bg-slate-800/30">
+                      <tbody className="text-sm text-slate-300 divide-y divide-slate-700 bg-[#1f2937]">
                           {usersList.map(u => (
-                              <tr key={u.id} className="hover:bg-white/5 transition-colors">
+                              <tr key={u.id} className="hover:bg-slate-800/50 transition-colors">
                                   <td className="p-4">
-                                      <div className="font-medium text-white">{u.username}</div>
+                                      <div className="font-medium text-slate-200">{u.username}</div>
                                       <div className="sm:hidden mt-1">
-                                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${u.role === 'admin' ? 'bg-purple-500/10 text-purple-300 border-purple-500/20' : 'bg-blue-500/10 text-blue-300 border-blue-500/20'}`}>
+                                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${u.role === 'admin' ? 'bg-purple-900/30 text-purple-400 border-purple-800' : 'bg-blue-900/30 text-blue-400 border-blue-800'}`}>
                                               {u.role === 'admin' ? t('role_admin') : t('role_member')}
                                           </span>
                                       </div>
                                   </td>
                                   <td className="p-4 hidden sm:table-cell">
-                                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${u.role === 'admin' ? 'bg-purple-500/10 text-purple-300 border-purple-500/20' : 'bg-blue-500/10 text-blue-300 border-blue-500/20'}`}>
+                                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${u.role === 'admin' ? 'bg-purple-900/30 text-purple-400 border-purple-800' : 'bg-blue-900/30 text-blue-400 border-blue-800'}`}>
                                           {u.role === 'admin' ? t('role_admin') : t('role_member')}
                                       </span>
                                   </td>
                                   <td className="p-4 flex justify-end gap-2">
                                       <button 
                                         onClick={() => openUserModal(u)}
-                                        className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                        className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-slate-200 transition-colors"
                                       >
                                           <Edit size={16} />
                                       </button>
@@ -876,17 +876,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
       {/* User Modal */}
       {isUserModalOpen && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-md p-4 animate-in fade-in duration-200">
-              <div className="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                  <div className="px-6 py-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/50">
-                      <h3 className="text-white font-bold">{editingUser ? t('edit_user') : t('new_user')}</h3>
-                      <button onClick={() => setIsUserModalOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+              <div className="bg-[#1e293b] rounded-2xl shadow-2xl border border-slate-700 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                  <div className="px-6 py-4 border-b border-slate-700 flex justify-between items-center bg-slate-800">
+                      <h3 className="text-slate-200 font-bold">{editingUser ? t('edit_user') : t('new_user')}</h3>
+                      <button onClick={() => setIsUserModalOpen(false)} className="text-slate-400 hover:text-slate-200 transition-colors">
                           <X size={20} />
                       </button>
                   </div>
                   <form onSubmit={handleUserSubmit} className="p-6 space-y-4">
                       {userFormError && (
-                          <div className="bg-red-500/10 text-red-400 text-sm p-3 rounded-lg border border-red-500/20 flex items-center gap-2">
+                          <div className="bg-red-900/30 text-red-400 text-sm p-3 rounded-lg border border-red-800 flex items-center gap-2">
                               <X size={14} /> {userFormError}
                           </div>
                       )}
@@ -897,7 +897,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                               required
                               value={userForm.username}
                               onChange={e => setUserForm({...userForm, username: e.target.value})}
-                              className="w-full bg-slate-900 border border-slate-700 text-white px-3 py-2.5 rounded-lg focus:outline-none focus:border-orange-500 transition-colors"
+                              className="w-full bg-slate-900 border border-slate-700 text-white px-3 py-2.5 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors"
                           />
                       </div>
                       <div>
@@ -907,7 +907,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                               required
                               value={userForm.password}
                               onChange={e => setUserForm({...userForm, password: e.target.value})}
-                              className="w-full bg-slate-900 border border-slate-700 text-white px-3 py-2.5 rounded-lg focus:outline-none focus:border-orange-500 transition-colors"
+                              className="w-full bg-slate-900 border border-slate-700 text-white px-3 py-2.5 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors"
                           />
                       </div>
                       <div>
@@ -915,7 +915,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                           <select 
                               value={userForm.role}
                               onChange={e => setUserForm({...userForm, role: e.target.value as 'admin'|'member'})}
-                              className="w-full bg-slate-900 border border-slate-700 text-white px-3 py-2.5 rounded-lg focus:outline-none focus:border-orange-500 transition-colors appearance-none"
+                              className="w-full bg-slate-900 border border-slate-700 text-white px-3 py-2.5 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors appearance-none"
                           >
                               <option value="member">{t('role_member')}</option>
                               <option value="admin">{t('role_admin')}</option>
@@ -925,13 +925,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                           <button 
                             type="button" 
                             onClick={() => setIsUserModalOpen(false)}
-                            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors"
+                            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors"
                           >
                               {t('cancel')}
                           </button>
                           <button 
                             type="submit" 
-                            className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-orange-900/20"
+                            className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-orange-900"
                           >
                               {t('save_user')}
                           </button>

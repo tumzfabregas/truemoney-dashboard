@@ -17,16 +17,16 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onChangePasswordClick }
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 shadow-lg">
+    <header className="sticky top-0 z-50 bg-[#1f2937] text-white shadow-md border-b border-slate-700">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
         
         {/* Brand */}
         <div className="flex items-center gap-2">
-            <div className="bg-orange-500/20 p-1.5 rounded-lg border border-orange-500/30">
+            <div className="bg-orange-500/10 p-1.5 rounded-lg border border-orange-500/20">
                 <ShieldCheck className="text-orange-500" size={20} />
             </div>
             <span className="text-white font-bold tracking-tight text-lg hidden sm:inline">
-                TM <span className="text-orange-500">Connect</span>
+                TM <span className="text-orange-500">Dashboard</span>
             </span>
         </div>
 
@@ -35,15 +35,15 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onChangePasswordClick }
           {/* Language Toggle */}
           <button 
             onClick={toggleLanguage}
-            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-300 transition-colors text-xs font-medium"
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors text-xs font-medium"
           >
              <Languages size={14} />
              <span className="uppercase">{language}</span>
           </button>
 
           {user && (
-            <div className="flex items-center bg-slate-800/50 rounded-full pl-3 pr-1 py-1 border border-slate-700/50">
-              <span className="text-slate-300 text-sm font-medium flex items-center gap-2 mr-2">
+            <div className="flex items-center bg-slate-800 rounded-full pl-3 pr-1 py-1 border border-slate-700">
+              <span className="text-slate-200 text-sm font-medium flex items-center gap-2 mr-2">
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
                 <span className="hidden sm:inline">{user.username}</span>
               </span>
@@ -60,7 +60,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onChangePasswordClick }
                 )}
                 <button 
                   onClick={onLogout}
-                  className="p-2 rounded-full bg-slate-700 hover:bg-red-600 text-slate-200 hover:text-white transition-all shadow-md"
+                  className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white transition-all shadow-sm"
                   title={t('logout')}
                 >
                   <LogOut size={16} />
