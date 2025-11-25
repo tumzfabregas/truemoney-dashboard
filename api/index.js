@@ -23,7 +23,11 @@ app.get('/api/test', (req, res) => {
 
 // Webhook Endpoint - GET Handler (For Verification in Browser)
 app.get('/api/webhook/truemoney', (req, res) => {
-    res.status(200).send('Webhook Endpoint is Online. (Method: GET). Please use POST method for sending data.');
+    res.status(200).json({
+        status: 'online',
+        message: 'Webhook Endpoint is ready. Use POST method to send data.',
+        timestamp: new Date().toISOString()
+    });
 });
 
 // Webhook Endpoint - POST Handler (For Actual Data)
