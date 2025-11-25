@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // --- MongoDB Cached Connection Pattern (Best for Vercel) ---
-// Updated: Force Redeploy Timestamp v1.0.2
+// Updated: Force Redeploy Timestamp v1.0.4 - 3 Months Retention
 const MONGODB_URI = process.env.MONGODB_URI;
 
 // Global cache to prevent multiple connections in Serverless
@@ -58,6 +58,10 @@ const TransactionSchema = new mongoose.Schema({
     type: String,
     rawPayload: Object
 }, { timestamps: true });
+
+// TTL Index: Auto-delete data older than 90 days (3 months)
+// 90 days * 24 hours * 60 minutes * 60 seconds = 7776000 seconds
+TransactionSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7776000 });
 
 const UserSchema = new mongoose.Schema({
     id: String,
@@ -163,7 +167,8 @@ app.post('/api/webhook/truemoney', async (req, res) => {
 app.get('/api/transactions', async (req, res) => {
     try {
         if (isDbConnected()) {
-            const data = await TransactionModel.find().sort({ date: -1 }).limit(100);
+            // Increased limit to 2000 to cover approx 3 months of history for typical usage
+            const data = await TransactionModel.find().sort({ date: -1 }).limit(2000);
             res.json(data);
         } else {
             res.json(memoryTransactions);
