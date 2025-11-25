@@ -75,7 +75,7 @@ const getStoredUsers = (): User[] => {
         if (stored) return JSON.parse(stored);
     } catch (e) { console.error(e); }
 
-    // Default Users - ONLY ADMIN
+    // Default Users - ONLY ADMIN (Removed Staff)
     const defaultUsers: User[] = [
         { id: '1', username: 'admin', password: 'admin', role: 'admin' }
     ];

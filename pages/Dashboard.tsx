@@ -80,6 +80,34 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     }
   }, [dataSource, isAdmin]);
 
+  // Independent Database Status Check
+  const checkDbStatus = useCallback(async () => {
+      try {
+           const res = await fetch('/api/webhook/truemoney');
+           if (res.ok) {
+               const statusData = await res.json();
+               if (statusData.db_status === 'connected') {
+                   setDbStatus('✅ Connected (MongoDB)');
+               } else {
+                   setDbStatus('⚠️ Disconnected (Memory)');
+               }
+           } else {
+               setDbStatus('❌ Offline (API Error)');
+           }
+      } catch(e) {
+           setDbStatus('❌ Offline (Unreachable)');
+      }
+  }, []);
+
+  // Check DB status on mount and periodically if admin
+  useEffect(() => {
+      if (isAdmin) {
+          checkDbStatus();
+          const statusInterval = setInterval(checkDbStatus, 30000); // Check every 30s
+          return () => clearInterval(statusInterval);
+      }
+  }, [isAdmin, checkDbStatus]);
+
   const loadData = useCallback(async (isBackgroundRefresh = false) => {
     if (!isBackgroundRefresh) setLoading(true);
     try {
@@ -87,7 +115,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           // Fetch from LocalStorage Mock
           const { data } = await fetchTransactions(currentPage, ITEMS_PER_PAGE);
           setTransactions(data);
-          setDbStatus('Mock (Local Storage)');
       } else {
           // Fetch from Real Server API
           const data = await fetchLiveTransactions();
@@ -116,19 +143,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           }
           
           setTransactions(mergedData);
-          
-          // Check DB Status via webhook endpoint
-          try {
-             const res = await fetch('/api/webhook/truemoney');
-             const statusData = await res.json();
-             if (statusData.db_status === 'connected') {
-                 setDbStatus('✅ Connected (MongoDB)');
-             } else {
-                 setDbStatus('⚠️ Disconnected (Memory)');
-             }
-          } catch(e) {
-             setDbStatus('❌ Offline');
-          }
       }
       setLastUpdated(new Date());
     } catch (err) {
@@ -185,6 +199,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const handleManualRefresh = () => {
     loadData();
     if (isAdmin && activeTab === 'users') loadUsers();
+    if (isAdmin) checkDbStatus();
   };
 
   const handleClearData = async () => {
