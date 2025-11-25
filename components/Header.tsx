@@ -1,6 +1,7 @@
 import React from 'react';
-import { LogOut, User as UserIcon, KeyRound, ShieldCheck } from 'lucide-react';
+import { LogOut, KeyRound, ShieldCheck, Languages } from 'lucide-react';
 import { User } from '../types';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface HeaderProps {
   user: User | null;
@@ -9,6 +10,12 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ user, onLogout, onChangePasswordClick }) => {
+  const { language, setLanguage, t } = useLanguage();
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'th' ? 'en' : 'th');
+  };
+
   return (
     <header className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
@@ -18,18 +25,27 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onChangePasswordClick }
             <div className="bg-orange-500/20 p-1.5 rounded-lg border border-orange-500/30">
                 <ShieldCheck className="text-orange-500" size={20} />
             </div>
-            <span className="text-white font-bold tracking-tight text-lg">
+            <span className="text-white font-bold tracking-tight text-lg hidden sm:inline">
                 TM <span className="text-orange-500">Connect</span>
             </span>
         </div>
 
         {/* User Controls */}
-        <div className="flex items-center gap-4">
-          {user ? (
-            <div className="flex items-center bg-slate-800/50 rounded-full pl-4 pr-1 py-1 border border-slate-700/50">
-              <span className="text-slate-300 text-sm font-medium flex items-center gap-2 mr-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Language Toggle */}
+          <button 
+            onClick={toggleLanguage}
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-300 transition-colors text-xs font-medium"
+          >
+             <Languages size={14} />
+             <span className="uppercase">{language}</span>
+          </button>
+
+          {user && (
+            <div className="flex items-center bg-slate-800/50 rounded-full pl-3 pr-1 py-1 border border-slate-700/50">
+              <span className="text-slate-300 text-sm font-medium flex items-center gap-2 mr-2">
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                {user.username}
+                <span className="hidden sm:inline">{user.username}</span>
               </span>
               
               <div className="flex items-center gap-1">
@@ -37,7 +53,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onChangePasswordClick }
                     <button 
                         onClick={onChangePasswordClick}
                         className="p-2 rounded-full hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
-                        title="Change Password"
+                        title={t('change_password')}
                     >
                         <KeyRound size={16} />
                     </button>
@@ -45,14 +61,12 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onChangePasswordClick }
                 <button 
                   onClick={onLogout}
                   className="p-2 rounded-full bg-slate-700 hover:bg-red-600 text-slate-200 hover:text-white transition-all shadow-md"
-                  title="Logout"
+                  title={t('logout')}
                 >
                   <LogOut size={16} />
                 </button>
               </div>
             </div>
-          ) : (
-            <span className="text-slate-500 text-sm">Not Logged In</span>
           )}
         </div>
       </div>

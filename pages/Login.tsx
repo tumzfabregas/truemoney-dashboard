@@ -3,12 +3,14 @@ import { User } from '../types';
 import { Lock, Wallet, ArrowRight } from 'lucide-react';
 import { authenticateUser } from '../services/mockService';
 import { loginApi } from '../services/apiService';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface LoginProps {
   onLogin: (user: User) => void;
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
+  const { t } = useLanguage();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -20,7 +22,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setLoading(true);
 
     if (!username || !password) {
-      setError('กรุณากรอกข้อมูลให้ครบถ้วน');
+      setError(t('login_error_empty'));
       setLoading(false);
       return;
     }
@@ -38,7 +40,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     if (user) {
         onLogin(user);
     } else {
-        setError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+        setError(t('login_error_invalid'));
     }
     setLoading(false);
   };
@@ -49,14 +51,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-orange-600/20 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
 
-      <div className="bg-slate-800/40 backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-slate-700/50 w-full max-w-sm relative z-10">
+      <div className="bg-slate-800/40 backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-slate-700/50 w-full max-w-sm relative z-10 mx-4">
         
         <div className="flex flex-col items-center mb-8">
             <div className="bg-gradient-to-br from-orange-500 to-red-600 p-4 rounded-2xl shadow-lg shadow-orange-900/30 mb-4 transform -rotate-6">
                 <Wallet className="text-white" size={40} />
             </div>
-            <h2 className="text-2xl font-bold text-white tracking-tight">Welcome Back</h2>
-            <p className="text-slate-400 text-sm mt-1">TrueMoney Webhook Dashboard</p>
+            <h2 className="text-2xl font-bold text-white tracking-tight">{t('welcome_back')}</h2>
+            <p className="text-slate-400 text-sm mt-1">{t('dashboard_title')}</p>
         </div>
         
         {error && (
@@ -67,24 +69,22 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-1.5">
-            <label className="text-slate-400 text-xs font-bold uppercase ml-1">Username</label>
+            <label className="text-slate-400 text-xs font-bold uppercase ml-1">{t('username')}</label>
             <input 
               type="text" 
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full bg-slate-900/60 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-slate-600"
-              placeholder="Enter your username"
               disabled={loading}
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-slate-400 text-xs font-bold uppercase ml-1">Password</label>
+            <label className="text-slate-400 text-xs font-bold uppercase ml-1">{t('password')}</label>
             <input 
               type="password" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-slate-900/60 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-slate-600"
-              placeholder="••••••••"
               disabled={loading}
             />
           </div>
@@ -97,13 +97,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             {loading ? (
                 <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
             ) : (
-                <>Sign In <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform"/></>
+                <>{t('signin_btn')} <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform"/></>
             )}
           </button>
         </form>
       </div>
 
-      <p className="text-slate-500 text-xs mt-8">Protected by secure connection</p>
+      <p className="text-slate-500 text-xs mt-8">{t('secure_connection')}</p>
     </div>
   );
 };
