@@ -75,10 +75,9 @@ const getStoredUsers = (): User[] => {
         if (stored) return JSON.parse(stored);
     } catch (e) { console.error(e); }
 
-    // Default Users
+    // Default Users - ONLY ADMIN
     const defaultUsers: User[] = [
-        { id: '1', username: 'admin', password: 'admin', role: 'admin' },
-        { id: '2', username: 'staff', password: '1234', role: 'member' }
+        { id: '1', username: 'admin', password: 'admin', role: 'admin' }
     ];
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(defaultUsers));
     return defaultUsers;

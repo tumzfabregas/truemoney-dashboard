@@ -52,6 +52,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [verificationSecret, setVerificationSecret] = useState('');
   const [isVerified, setIsVerified] = useState(false);
 
+  // Database Status Check
+  const [dbStatus, setDbStatus] = useState<string>('Checking...');
+
   // User Management State
   const [usersList, setUsersList] = useState<User[]>([]);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -84,6 +87,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           // Fetch from LocalStorage Mock
           const { data } = await fetchTransactions(currentPage, ITEMS_PER_PAGE);
           setTransactions(data);
+          setDbStatus('Mock (Local Storage)');
       } else {
           // Fetch from Real Server API
           const data = await fetchLiveTransactions();
@@ -112,6 +116,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           }
           
           setTransactions(mergedData);
+          
+          // Check DB Status via webhook endpoint
+          try {
+             const res = await fetch('/api/webhook/truemoney');
+             const statusData = await res.json();
+             if (statusData.db_status === 'connected') {
+                 setDbStatus('✅ Connected (MongoDB)');
+             } else {
+                 setDbStatus('⚠️ Disconnected (Memory)');
+             }
+          } catch(e) {
+             setDbStatus('❌ Offline');
+          }
       }
       setLastUpdated(new Date());
     } catch (err) {
@@ -137,8 +154,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   // Reload users when datasource changes
   useEffect(() => {
-      if (isAdmin) loadUsers();
-  }, [dataSource, isAdmin, loadUsers]);
+      if (isAdmin && activeTab === 'users') loadUsers();
+  }, [dataSource, isAdmin, loadUsers, activeTab]);
 
   // Initial Load & Auto Refresh Logic
   useEffect(() => {
@@ -636,7 +653,10 @@ export default app;
                             <Server size={14} /> ข้อมูลสำหรับติดตั้ง (Setup URL)
                         </h3>
                         <div className="space-y-2">
-                            <div className="text-xs text-gray-400">Webhook Endpoint URL ที่ใช้งานอยู่:</div>
+                            <div className="flex justify-between items-center text-xs text-gray-400">
+                                <span>Webhook Endpoint URL:</span>
+                                <span>Database Status: <span className={`font-bold ${dbStatus.includes('Connected') ? 'text-green-400' : 'text-red-400'}`}>{dbStatus}</span></span>
+                            </div>
                             <div className="flex gap-2">
                             <code className={`flex-1 text-xs p-2 rounded border font-mono overflow-hidden whitespace-nowrap text-ellipsis ${dataSource === 'live' ? 'bg-green-900/20 text-green-400 border-green-800' : 'bg-[#0f172a] text-gray-400 border-gray-600'}`}>
                                 {dataSource === 'live' ? `${currentOrigin}/api/webhook/truemoney` : 'เปลี่ยนเป็น Live Mode เพื่อดู URL จริง'}

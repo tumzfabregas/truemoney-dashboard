@@ -10,20 +10,41 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// --- Database Connection ---
+// --- MongoDB Cached Connection Pattern (Best for Vercel) ---
 const MONGODB_URI = process.env.MONGODB_URI;
-let isConnected = false;
 
-// Connect to MongoDB if URI is available
-if (MONGODB_URI) {
-    mongoose.connect(MONGODB_URI)
-        .then(() => {
-            console.log('✅ Connected to MongoDB');
-            isConnected = true;
-        })
-        .catch(err => console.error('❌ MongoDB Connection Error:', err));
-} else {
-    console.warn('⚠️ No MONGODB_URI found. Using in-memory storage (Data will be lost on restart).');
+// Global cache to prevent multiple connections in Serverless
+let cached = global.mongoose;
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
+async function dbConnect() {
+    if (!MONGODB_URI) return null;
+
+    if (cached.conn) {
+        return cached.conn;
+    }
+
+    if (!cached.promise) {
+        const opts = {
+            bufferCommands: false, // Disable mongoose buffering
+        };
+
+        cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+            console.log('✅ New MongoDB Connection Established');
+            return mongoose;
+        });
+    }
+
+    try {
+        cached.conn = await cached.promise;
+    } catch (e) {
+        cached.promise = null;
+        throw e;
+    }
+
+    return cached.conn;
 }
 
 // --- Schemas & Models ---
@@ -34,7 +55,7 @@ const TransactionSchema = new mongoose.Schema({
     date: Date,
     message: String,
     type: String,
-    rawPayload: Object // Store original payload for debugging
+    rawPayload: Object
 }, { timestamps: true });
 
 const UserSchema = new mongoose.Schema({
@@ -44,69 +65,60 @@ const UserSchema = new mongoose.Schema({
     role: String
 });
 
-const TransactionModel = mongoose.model('Transaction', TransactionSchema);
-const UserModel = mongoose.model('User', UserSchema);
+// Prevent model recompilation error in serverless
+const TransactionModel = mongoose.models.Transaction || mongoose.model('Transaction', TransactionSchema);
+const UserModel = mongoose.models.User || mongoose.model('User', UserSchema);
 
-// Fallback In-memory data
+// --- Fallback Memory Data (Only used if no MongoDB) ---
 let memoryTransactions = [];
+// Clean start: Only admin, no staff
 let memoryUsers = [
-    { id: '1', username: 'admin', password: 'admin', role: 'admin' },
-    { id: '2', username: 'staff', password: '1234', role: 'member' }
+    { id: '1', username: 'admin', password: 'admin', role: 'admin' }
 ];
 
-// --- Helper Functions ---
-const getTransactions = async () => {
-    if (isConnected) {
-        // Sort by date descending, limit 100
-        return await TransactionModel.find().sort({ date: -1 }).limit(100);
-    }
-    return memoryTransactions;
-};
+// --- Helpers ---
+const isDbConnected = () => mongoose.connection.readyState === 1;
 
-const saveTransaction = async (data) => {
-    if (isConnected) {
-        return await TransactionModel.create(data);
-    }
-    memoryTransactions.unshift(data);
-    if (memoryTransactions.length > 50) memoryTransactions = memoryTransactions.slice(0, 50);
-    return data;
-};
-
-const getUsers = async () => {
-    if (isConnected) {
-        // Seed default users if empty
+// Seed Admin if DB is empty
+const ensureAdminExists = async () => {
+    if (isDbConnected()) {
         const count = await UserModel.countDocuments();
         if (count === 0) {
-            await UserModel.insertMany(memoryUsers);
+            console.log('🌱 Seeding default Admin user...');
+            await UserModel.create({
+                id: Date.now().toString(),
+                username: 'admin',
+                password: 'admin',
+                role: 'admin'
+            });
         }
-        return await UserModel.find();
     }
-    return memoryUsers;
 };
 
 // --- Routes ---
 
-app.get('/api/test', (req, res) => {
-  res.send(`API is working. DB Connected: ${isConnected}`);
+app.use(async (req, res, next) => {
+    // Ensure DB is connected on every request
+    await dbConnect();
+    next();
 });
 
-// Webhook Endpoint - GET Handler
+// Webhook GET - Check Status
 app.get('/api/webhook/truemoney', (req, res) => {
     res.status(200).json({
         status: 'online',
-        db_status: isConnected ? 'connected' : 'disconnected (using memory)',
+        db_status: isDbConnected() ? 'connected' : 'disconnected (using memory)',
         message: 'Webhook Endpoint is ready.',
         timestamp: new Date().toISOString()
     });
 });
 
-// Webhook Endpoint - POST Handler
+// Webhook POST - Receive Data
 app.post('/api/webhook/truemoney', async (req, res) => {
     try {
         const token = req.body.message || req.body.token || req.body;
         let transactionData = {};
 
-        // Decode logic
         if (typeof token === 'string' && token.split('.').length === 3) {
             try {
                 transactionData = jwt.decode(token);
@@ -119,7 +131,7 @@ app.post('/api/webhook/truemoney', async (req, res) => {
         }
 
         let amount = Number(transactionData.amount || 0);
-        amount = amount / 100; // Satang to Baht
+        amount = amount / 100; // Convert Satang to Baht
 
         const newTransaction = {
             id: `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -131,7 +143,12 @@ app.post('/api/webhook/truemoney', async (req, res) => {
             rawPayload: transactionData
         };
 
-        await saveTransaction(newTransaction);
+        if (isDbConnected()) {
+            await TransactionModel.create(newTransaction);
+        } else {
+            memoryTransactions.unshift(newTransaction);
+            if (memoryTransactions.length > 50) memoryTransactions = memoryTransactions.slice(0, 50);
+        }
         
         console.log('New Transaction Saved:', newTransaction.id);
         res.status(200).send({ status: 'success', data: newTransaction });
@@ -144,8 +161,12 @@ app.post('/api/webhook/truemoney', async (req, res) => {
 // Get Transactions
 app.get('/api/transactions', async (req, res) => {
     try {
-        const data = await getTransactions();
-        res.json(data);
+        if (isDbConnected()) {
+            const data = await TransactionModel.find().sort({ date: -1 }).limit(100);
+            res.json(data);
+        } else {
+            res.json(memoryTransactions);
+        }
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
@@ -153,7 +174,7 @@ app.get('/api/transactions', async (req, res) => {
 
 // Clear Data
 app.delete('/api/transactions', async (req, res) => {
-    if (isConnected) {
+    if (isDbConnected()) {
         await TransactionModel.deleteMany({});
     } else {
         memoryTransactions = [];
@@ -163,24 +184,26 @@ app.delete('/api/transactions', async (req, res) => {
 
 // --- User Management ---
 
-// Login Endpoint
+// Login
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     try {
+        // Ensure Admin Exists before login check
+        await ensureAdminExists();
+
         let user = null;
-        if (isConnected) {
+        if (isDbConnected()) {
             user = await UserModel.findOne({ username, password });
         } else {
             user = memoryUsers.find(u => u.username === username && u.password === password);
         }
 
         if (user) {
-            // Return user without sensitive mongo fields if needed, but ID is important
             return res.json({
                 id: user.id || user._id.toString(),
                 username: user.username,
                 role: user.role,
-                password: user.password // sending back for simple logic, usually don't do this
+                password: user.password
             });
         }
         res.status(401).json({ error: 'Invalid credentials' });
@@ -189,17 +212,24 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+// Get Users
 app.get('/api/users', async (req, res) => {
-    const users = await getUsers();
-    res.json(users);
+    await ensureAdminExists();
+    if (isDbConnected()) {
+        const users = await UserModel.find();
+        res.json(users);
+    } else {
+        res.json(memoryUsers);
+    }
 });
 
+// Add User
 app.post('/api/users', async (req, res) => {
     const { username, password, role } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
 
     try {
-        if (isConnected) {
+        if (isDbConnected()) {
             const exists = await UserModel.findOne({ username });
             if (exists) return res.status(400).json({ error: 'Username taken' });
             
@@ -219,20 +249,17 @@ app.post('/api/users', async (req, res) => {
     }
 });
 
+// Update User
 app.put('/api/users/:id', async (req, res) => {
     const id = req.params.id;
     try {
-        if (isConnected) {
+        if (isDbConnected()) {
             const update = { ...req.body };
-            // Allow update by custom ID or Mongo _id
             let updated = await UserModel.findOneAndUpdate({ id: id }, update, { new: true });
-            if (!updated) {
-                 // Try by _id if id string search failed
-                 if (mongoose.Types.ObjectId.isValid(id)) {
-                    updated = await UserModel.findByIdAndUpdate(id, update, { new: true });
-                 }
+            // Fallback for ObjectId
+            if (!updated && mongoose.Types.ObjectId.isValid(id)) {
+                 updated = await UserModel.findByIdAndUpdate(id, update, { new: true });
             }
-            
             if (!updated) return res.status(404).json({ error: 'User not found' });
             return res.json(updated);
         } else {
@@ -246,15 +273,15 @@ app.put('/api/users/:id', async (req, res) => {
     }
 });
 
+// Delete User
 app.delete('/api/users/:id', async (req, res) => {
     const id = req.params.id;
     try {
-        if (isConnected) {
-            // Check admin protection
+        if (isDbConnected()) {
             const userToCheck = await UserModel.findOne({ id: id }) || (mongoose.Types.ObjectId.isValid(id) ? await UserModel.findById(id) : null);
             if (userToCheck && userToCheck.username === 'admin') return res.status(400).json({ error: 'Cannot delete admin' });
-
-            await UserModel.deleteOne({ _id: userToCheck?._id });
+            
+            if (userToCheck) await UserModel.deleteOne({ _id: userToCheck._id });
         } else {
             const user = memoryUsers.find(u => u.id === id);
             if (user && user.username === 'admin') return res.status(400).json({ error: 'Cannot delete admin' });
