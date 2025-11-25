@@ -70,9 +70,15 @@ const UserSchema = new mongoose.Schema({
     role: String
 });
 
+const SettingsSchema = new mongoose.Schema({
+    key: { type: String, unique: true },
+    value: String
+});
+
 // Prevent model recompilation error in serverless
 const TransactionModel = mongoose.models.Transaction || mongoose.model('Transaction', TransactionSchema);
 const UserModel = mongoose.models.User || mongoose.model('User', UserSchema);
+const SettingsModel = mongoose.models.Settings || mongoose.model('Settings', SettingsSchema);
 
 // --- Fallback Memory Data (Only used if no MongoDB) ---
 let memoryTransactions = [];
@@ -80,6 +86,7 @@ let memoryTransactions = [];
 let memoryUsers = [
     { id: '1', username: 'admin', password: 'admin', role: 'admin' }
 ];
+let memorySettings = {};
 
 // --- Helpers ---
 const isDbConnected = () => mongoose.connection.readyState === 1;
@@ -186,6 +193,65 @@ app.delete('/api/transactions', async (req, res) => {
         memoryTransactions = [];
     }
     res.json({ status: 'cleared' });
+});
+
+// --- Settings & Proxy ---
+
+app.get('/api/settings/:key', async (req, res) => {
+    const key = req.params.key;
+    if (isDbConnected()) {
+        const setting = await SettingsModel.findOne({ key });
+        res.json({ value: setting ? setting.value : '' });
+    } else {
+        res.json({ value: memorySettings[key] || '' });
+    }
+});
+
+app.post('/api/settings', async (req, res) => {
+    const { key, value } = req.body;
+    if (isDbConnected()) {
+        await SettingsModel.findOneAndUpdate({ key }, { value }, { upsert: true, new: true });
+    } else {
+        memorySettings[key] = value;
+    }
+    res.json({ status: 'saved' });
+});
+
+// Proxy to TrueMoney Balance API
+app.get('/api/balance', async (req, res) => {
+    try {
+        let token = '';
+        if (isDbConnected()) {
+            const setting = await SettingsModel.findOne({ key: 'service_token' });
+            token = setting?.value;
+        } else {
+            token = memorySettings['service_token'];
+        }
+
+        if (!token) {
+            return res.status(400).json({ error: 'Service token not configured' });
+        }
+
+        const tmResponse = await fetch('https://apis.truemoneyservices.com/account/v1/balance', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!tmResponse.ok) {
+            const errText = await tmResponse.text();
+            console.error('TrueMoney API Error:', errText);
+            return res.status(tmResponse.status).json({ error: 'Failed to fetch balance from TrueMoney' });
+        }
+
+        const data = await tmResponse.json();
+        res.json(data);
+    } catch (e) {
+        console.error('Proxy Error:', e);
+        res.status(500).json({ error: e.message });
+    }
 });
 
 // --- User Management ---

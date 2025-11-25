@@ -48,6 +48,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   // Verification Secret State
   const [verificationSecret, setVerificationSecret] = useState('');
   const [isVerified, setIsVerified] = useState(false);
+  
+  // Service Token & Balance
+  const [serviceToken, setServiceToken] = useState('');
+  const [walletBalance, setWalletBalance] = useState<string | null>(null);
+  const [walletPhone, setWalletPhone] = useState<string | null>(null);
 
   // Database Status Check
   const [dbStatus, setDbStatus] = useState<string>('Checking...');
@@ -93,13 +98,59 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       }
   }, []);
 
+  // Fetch Service Token
+  const fetchSettings = useCallback(async () => {
+      try {
+          const res = await fetch('/api/settings/service_token');
+          if (res.ok) {
+              const data = await res.json();
+              if (data.value) setServiceToken(data.value);
+          }
+      } catch (e) { console.error(e); }
+  }, []);
+
+  // Fetch Balance
+  const fetchBalance = useCallback(async () => {
+      if (dataSource !== 'live') return;
+      try {
+          const res = await fetch('/api/balance');
+          if (res.ok) {
+              const data = await res.json();
+              // API returns { status: "ok", data: { balance: "20010", mobile_no: "..." } }
+              if (data.status === 'ok' && data.data) {
+                  const rawBalance = Number(data.data.balance || 0);
+                  // Assuming balance is in Satang based on standard TrueMoney API practices, but webhook was Satang. 
+                  // If display is 20010 for 200.10, divide by 100. If it's pure Baht, don't.
+                  // Usually 'balance' in API is Satang string.
+                  setWalletBalance((rawBalance / 100).toLocaleString('th-TH', { minimumFractionDigits: 2 }));
+                  setWalletPhone(formatPhoneNumber(data.data.mobile_no));
+              }
+          } else {
+              setWalletPhone(null); // Reset if failed
+          }
+      } catch (e) { 
+          console.error("Balance fetch error", e);
+          setWalletPhone(null);
+      }
+  }, [dataSource]);
+
   useEffect(() => {
       if (isAdmin) {
           checkDbStatus();
+          fetchSettings();
           const statusInterval = setInterval(checkDbStatus, 30000); 
           return () => clearInterval(statusInterval);
       }
-  }, [isAdmin, checkDbStatus]);
+  }, [isAdmin, checkDbStatus, fetchSettings]);
+
+  useEffect(() => {
+      if (dataSource === 'live') {
+          fetchBalance();
+      } else {
+          setWalletBalance(null);
+          setWalletPhone(null);
+      }
+  }, [dataSource, fetchBalance]);
 
   const loadData = useCallback(async (isBackgroundRefresh = false) => {
     if (!isBackgroundRefresh) setLoading(true);
@@ -166,18 +217,20 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     if (isAutoRefresh) {
       timerRef.current = setInterval(() => {
         loadData(true);
+        if (dataSource === 'live') fetchBalance(); // Refresh balance too
       }, REFRESH_INTERVAL);
     }
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [loadData, isAutoRefresh]);
+  }, [loadData, isAutoRefresh, dataSource, fetchBalance]);
 
   const toggleAutoRefresh = () => setIsAutoRefresh(prev => !prev);
 
   const handleManualRefresh = () => {
     loadData();
+    if (dataSource === 'live') fetchBalance();
     if (isAdmin && activeTab === 'users') loadUsers();
     if (isAdmin) checkDbStatus();
   };
@@ -311,8 +364,27 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       setIsVerified(true);
   };
 
+  const handleSaveServiceToken = async () => {
+      if (!serviceToken.trim()) return;
+      try {
+          await fetch('/api/settings', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ key: 'service_token', value: serviceToken })
+          });
+          alert('Service token saved');
+          fetchBalance();
+      } catch (e) {
+          alert('Failed to save token');
+      }
+  };
+
   const handleCheckBalance = () => {
-      alert(`Balance (Demo): ${Math.floor(Math.random() * 100000).toLocaleString()} THB`);
+      if (dataSource === 'live') {
+          fetchBalance();
+      } else {
+          alert(`Balance (Demo): ${Math.floor(Math.random() * 100000).toLocaleString()} THB`);
+      }
   };
 
   const handleCheckLastTx = () => {
@@ -440,7 +512,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             {/* Control Bar */}
             <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-5 shadow-lg flex flex-col md:flex-row justify-between items-stretch md:items-center gap-5">
                 
-                {/* Data Source Toggle */}
+                {/* Data Source Toggle & Balance */}
                 <div className="flex flex-col sm:flex-row items-center gap-4">
                      <span className="text-xs font-bold text-gray-400 uppercase tracking-widest w-full sm:w-auto text-left">{t('source')}</span>
                      <div className="w-full sm:w-auto flex bg-[#2b2d30] p-1.5 rounded-xl border border-[#444746] shadow-inner">
@@ -456,15 +528,25 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                     onClick={() => { setDataSource('live'); setCurrentPage(1); }}
                                     className={`flex-1 sm:flex-none justify-center flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all uppercase tracking-wide ${dataSource === 'live' ? 'bg-green-800 text-green-100 border border-green-700 shadow-md' : 'text-gray-500 hover:text-gray-300'}`}
                                 >
-                                    <Globe size={14} /> {t('live')}
+                                    <Globe size={14} /> 
+                                    {dataSource === 'live' && walletPhone ? `API : ${walletPhone}` : t('live')}
                                 </button>
                             </>
                          ) : (
                              <div className="w-full flex justify-center items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg bg-green-900/30 text-green-400 border border-green-800 uppercase tracking-wide">
-                                 <Globe size={14} /> {t('live')}
+                                 <Globe size={14} /> 
+                                 {walletPhone ? `API : ${walletPhone}` : t('live')}
                              </div>
                          )}
                      </div>
+                     
+                     {/* Wallet Balance Display */}
+                     {dataSource === 'live' && walletBalance && (
+                        <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-[#2b2d30] border border-[#444746] text-orange-500 font-mono font-bold text-sm shadow-inner">
+                            <Wallet size={16} />
+                            <span>฿ {walletBalance}</span>
+                        </div>
+                     )}
                 </div>
 
                 {/* Status & Actions */}
@@ -553,7 +635,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                     </div>
 
                                     {/* Mobile Card Row */}
-                                    <div className="md:hidden p-5 flex flex-col gap-3 hover:bg-[#2b2d30] transition-colors border-b border-[#444746] last:border-0">
+                                    <div className="md:hidden p-5 flex flex-col gap-2 hover:bg-[#2b2d30] transition-colors border-b border-[#444746] last:border-0">
                                         <div className="flex justify-between items-center">
                                             <span className="text-lg font-bold text-white font-mono tracking-wide">
                                                 {formatPhoneNumber(tx.sender)}
@@ -562,10 +644,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                                 +{tx.amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                                             </span>
                                         </div>
-                                        <div className="flex items-center gap-3 text-sm text-gray-400 font-medium">
-                                            <span className="font-mono bg-[#2b2d30] px-2 py-1 rounded border border-[#444746]">{formatDate(tx.date)}</span>
+                                        <div className="text-sm text-gray-400 font-medium flex items-center gap-2 mt-1">
+                                            <span className="font-mono">{formatDate(tx.date)}</span>
                                             {tx.message && (
-                                                <span className="text-gray-300 truncate flex-1">{tx.message}</span>
+                                                <span className="text-gray-300 truncate flex-1 opacity-80 border-l border-gray-600 pl-2">{tx.message}</span>
                                             )}
                                         </div>
                                     </div>
@@ -648,23 +730,47 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                     </button>
                                 </div>
 
-                                <div className="pt-4 border-t border-[#444746]">
-                                    <label className="text-[10px] text-gray-400 font-bold uppercase mb-2 block tracking-wide">{t('verification_secret')}</label>
-                                    <div className="flex flex-col sm:flex-row gap-3">
-                                        <input 
-                                            type="text" 
-                                            value={verificationSecret}
-                                            onChange={(e) => { setVerificationSecret(e.target.value); setIsVerified(false); }}
-                                            placeholder={t('verification_placeholder')}
-                                            className="flex-1 bg-[#1a1b1d] border border-[#444746] text-sm text-gray-200 px-4 py-2.5 rounded-xl focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors font-mono shadow-inner placeholder:text-gray-600"
-                                        />
-                                        <button 
-                                            onClick={handleSaveSecret}
-                                            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 uppercase tracking-wide ${isVerified ? 'bg-green-600 text-white shadow-md shadow-green-900/40' : 'bg-[#444746] hover:bg-[#505356] text-white'}`}
-                                        >
-                                            {isVerified ? <Check size={16} /> : t('save')}
-                                        </button>
+                                <div className="pt-4 border-t border-[#444746] space-y-4">
+                                    {/* Verification Secret */}
+                                    <div>
+                                        <label className="text-[10px] text-gray-400 font-bold uppercase mb-2 block tracking-wide">{t('verification_secret')}</label>
+                                        <div className="flex flex-col sm:flex-row gap-3">
+                                            <input 
+                                                type="text" 
+                                                value={verificationSecret}
+                                                onChange={(e) => { setVerificationSecret(e.target.value); setIsVerified(false); }}
+                                                placeholder={t('verification_placeholder')}
+                                                className="flex-1 bg-[#1a1b1d] border border-[#444746] text-sm text-gray-200 px-4 py-2.5 rounded-xl focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors font-mono shadow-inner placeholder:text-gray-600"
+                                            />
+                                            <button 
+                                                onClick={handleSaveSecret}
+                                                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 uppercase tracking-wide ${isVerified ? 'bg-green-600 text-white shadow-md shadow-green-900/40' : 'bg-[#444746] hover:bg-[#505356] text-white'}`}
+                                            >
+                                                {isVerified ? <Check size={16} /> : t('save')}
+                                            </button>
+                                        </div>
                                     </div>
+
+                                    {/* Service Token Input */}
+                                    <div>
+                                        <label className="text-[10px] text-gray-400 font-bold uppercase mb-2 block tracking-wide">{t('service_token')}</label>
+                                        <div className="flex flex-col sm:flex-row gap-3">
+                                            <input 
+                                                type="text" 
+                                                value={serviceToken}
+                                                onChange={(e) => setServiceToken(e.target.value)}
+                                                placeholder={t('service_token_placeholder')}
+                                                className="flex-1 bg-[#1a1b1d] border border-[#444746] text-sm text-gray-200 px-4 py-2.5 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors font-mono shadow-inner placeholder:text-gray-600"
+                                            />
+                                            <button 
+                                                onClick={handleSaveServiceToken}
+                                                className="px-4 py-2.5 bg-[#444746] hover:bg-[#505356] text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 uppercase tracking-wide"
+                                            >
+                                                {t('save')}
+                                            </button>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>

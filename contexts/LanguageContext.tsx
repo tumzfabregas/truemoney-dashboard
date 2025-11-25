@@ -53,6 +53,9 @@ const translations: Record<Language, Record<string, string>> = {
     "verification_secret": "รหัสยืนยัน (Secret)",
     "verification_placeholder": "วางรหัสจากแอป TrueMoney (902b...)",
     "verified": "เชื่อมต่อเรียบร้อย (Verified)",
+    "service_token": "TrueMoney Service Token",
+    "service_token_placeholder": "วาง Token สำหรับเช็คยอดเงิน (2293d...)",
+    "wallet_balance": "ยอดคงเหลือ",
     
     // Advanced Tools
     "advanced_tools": "เครื่องมือขั้นสูง",
@@ -145,6 +148,9 @@ const translations: Record<Language, Record<string, string>> = {
     "verification_secret": "Verification Secret",
     "verification_placeholder": "Paste code from TrueMoney app (902b...)",
     "verified": "Connection Verified",
+    "service_token": "TrueMoney Service Token",
+    "service_token_placeholder": "Paste balance checking token (2293d...)",
+    "wallet_balance": "Wallet Balance",
 
     // Advanced Tools
     "advanced_tools": "Advanced Tools",
