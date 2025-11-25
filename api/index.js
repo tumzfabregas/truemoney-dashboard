@@ -11,8 +11,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // --- MongoDB Cached Connection Pattern (Best for Vercel) ---
-// Note: If you want to hardcode your URI for testing, uncomment below:
-// const MONGODB_URI = "mongodb+srv://admin:YOUR_PASSWORD@YOUR_CLUSTER.mongodb.net/true-db?retryWrites=true&w=majority";
+// Updated: Force Redeploy Timestamp
 const MONGODB_URI = process.env.MONGODB_URI;
 
 // Global cache to prevent multiple connections in Serverless
