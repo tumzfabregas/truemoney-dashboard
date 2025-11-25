@@ -3,7 +3,7 @@ import { Transaction, User } from '../types';
 import { fetchTransactions, simulateIncomingWebhook, clearAllData, getUsers, addUser, updateUser, deleteUser } from '../services/mockService';
 import { fetchLiveTransactions, triggerLiveWebhook, clearLiveTransactions } from '../services/apiService';
 import { analyzeTransactions } from '../services/geminiService';
-import { RefreshCw, Sparkles, Server, Clipboard, Check, Clock, Power, Play, Code, Trash2, FileText, LayoutDashboard, Globe, Database, Lock, Users, Edit, Plus, X, Wallet, BellRing, History, Smartphone, LayoutGrid } from 'lucide-react';
+import { RefreshCw, Sparkles, Server, Clipboard, Check, Clock, Power, Play, Code, Trash2, FileText, LayoutDashboard, Globe, Database, Lock, Users, Edit, Plus, X, Wallet, BellRing, History, Smartphone, LayoutGrid, KeyRound } from 'lucide-react';
 
 interface DashboardProps {
   user: User;
@@ -35,6 +35,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   // Copy State
   const [copied, setCopied] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
+
+  // Verification Secret State
+  const [verificationSecret, setVerificationSecret] = useState('');
+  const [isVerified, setIsVerified] = useState(false);
 
   // User Management State
   const [usersList, setUsersList] = useState<User[]>([]);
@@ -76,7 +80,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     }
   }, [currentPage, dataSource]);
 
-  // Load Users
+  // Load Users & Secret
   const loadUsers = () => {
       setUsersList(getUsers());
   };
@@ -85,6 +89,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   useEffect(() => {
     loadData();
     if (isAdmin) loadUsers();
+
+    // Load secret
+    const storedSecret = localStorage.getItem('tm_verification_secret');
+    if (storedSecret) {
+        setVerificationSecret(storedSecret);
+        setIsVerified(true);
+    }
 
     if (isAutoRefresh) {
       timerRef.current = setInterval(() => {
@@ -238,6 +249,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     setCodeCopied(true);
     setTimeout(() => setCodeCopied(false), 2000);
   }
+
+  const handleSaveSecret = () => {
+      if (!verificationSecret.trim()) return;
+      localStorage.setItem('tm_verification_secret', verificationSecret);
+      setIsVerified(true);
+  };
 
   // --- Mock Service Handlers ---
   const handleCheckBalance = () => {
@@ -600,6 +617,39 @@ export default app;
                                 : '* กรุณาเปลี่ยนโหมดเป็น "Live Server" เพื่อดู URL สำหรับนำไปใช้งานจริง'}
                             </p>
                         </div>
+
+                         {/* NEW SECTION: Verification Secret */}
+                         {dataSource === 'live' && (
+                            <div className="mt-4 pt-4 border-t border-gray-700/50">
+                                <h3 className="text-gray-400 text-xs uppercase font-bold mb-2 flex items-center gap-2">
+                                    <KeyRound size={14} /> Verification Secret
+                                </h3>
+                                <div className="text-[10px] text-gray-500 mb-2">
+                                    รหัสที่ได้จากแอป TrueMoney หลังจากกรอก URL (เช่น 902b...)
+                                </div>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="text" 
+                                        value={verificationSecret}
+                                        onChange={(e) => { setVerificationSecret(e.target.value); setIsVerified(false); }}
+                                        placeholder="วางรหัส Verification Secret ที่นี่"
+                                        className={`flex-1 bg-[#0f172a] border text-xs px-3 py-2 rounded focus:outline-none focus:border-green-500 font-mono ${isVerified ? 'border-green-500/50 text-green-400' : 'border-gray-600 text-gray-300'}`}
+                                    />
+                                    <button 
+                                        onClick={handleSaveSecret}
+                                        className={`px-3 py-2 rounded text-xs transition-colors flex items-center gap-1 ${isVerified ? 'bg-green-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}
+                                    >
+                                        {isVerified ? <Check size={14} /> : 'Save'}
+                                    </button>
+                                </div>
+                                {isVerified && (
+                                    <div className="mt-2 flex items-center gap-2 text-[10px] text-green-400 bg-green-900/20 p-2 rounded border border-green-900/50">
+                                        <Check size={12} /> เชื่อมต่อกับ TrueMoney เรียบร้อยแล้ว (Verified)
+                                    </div>
+                                )}
+                            </div>
+                         )}
+
                         </div>
                     </div>
 
