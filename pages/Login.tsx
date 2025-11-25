@@ -46,60 +46,63 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-140px)] p-4 relative overflow-hidden bg-[#131314]">
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] p-4 bg-[#373737]">
       
-      <div className="bg-[#1E1F20] p-8 rounded-3xl shadow-2xl border border-[#444746] w-full max-w-sm relative z-10 mx-4">
+      <div className="bg-[#454545] p-10 rounded-[2rem] shadow-2xl border border-[#575757] w-full max-w-md relative z-10 mx-4">
         
-        <div className="flex flex-col items-center mb-8">
-            <div className="bg-[#2A2B2C] p-4 rounded-2xl shadow-sm border border-[#444746] mb-5 text-orange-500">
-                <Wallet size={36} />
+        <div className="flex flex-col items-center mb-10">
+            <div className="bg-[#373737] p-5 rounded-2xl shadow-inner border border-[#575757] mb-6 text-orange-500">
+                <Wallet size={48} strokeWidth={1.5} />
             </div>
-            <h2 className="text-xl font-bold text-white tracking-wide uppercase">{t('app_name')}</h2>
+            <h2 className="text-3xl font-bold text-white tracking-tight text-center">TrueMoney <span className="text-orange-500">Dashboard</span></h2>
+            <p className="text-orange-200/60 mt-2 text-sm font-medium">Secure Admin Access</p>
         </div>
         
         {error && (
-          <div className="bg-red-900/20 border border-red-800 text-red-400 px-4 py-3 rounded-xl mb-6 text-sm text-center flex items-center justify-center gap-2 animate-in fade-in slide-in-from-top-2">
-            <Lock size={14} /> {error}
+          <div className="bg-red-500/10 border border-red-500/30 text-red-200 px-4 py-4 rounded-xl mb-8 text-sm text-center flex items-center justify-center gap-2 animate-in fade-in slide-in-from-top-2">
+            <Lock size={16} /> {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-1.5">
-            <label className="text-slate-400 text-xs font-bold uppercase ml-1">{t('username')}</label>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-orange-200/80 text-xs font-bold uppercase ml-1 tracking-wider">{t('username')}</label>
             <input 
               type="text" 
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-[#131314] border border-[#444746] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-slate-600"
+              className="w-full bg-[#373737] border border-[#575757] text-white text-lg px-5 py-4 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-gray-600 shadow-inner"
               disabled={loading}
+              placeholder="Enter your username"
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-slate-400 text-xs font-bold uppercase ml-1">{t('password')}</label>
+          <div className="space-y-2">
+            <label className="text-orange-200/80 text-xs font-bold uppercase ml-1 tracking-wider">{t('password')}</label>
             <input 
               type="password" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-[#131314] border border-[#444746] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-slate-600"
+              className="w-full bg-[#373737] border border-[#575757] text-white text-lg px-5 py-4 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-gray-600 shadow-inner"
               disabled={loading}
+              placeholder="••••••••"
             />
           </div>
           
           <button 
             type="submit"
             disabled={loading}
-            className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3.5 rounded-xl transition-all transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-md flex items-center justify-center gap-2 group mt-4"
+            className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold text-lg py-4 rounded-xl transition-all transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-orange-900/40 flex items-center justify-center gap-3 group mt-6"
           >
             {loading ? (
-                <span className="w-5 h-5 border-2 border-slate-400 border-t-white rounded-full animate-spin"></span>
+                <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
             ) : (
-                <>{t('signin_btn')} <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform"/></>
+                <>{t('signin_btn')} <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform"/></>
             )}
           </button>
         </form>
       </div>
 
-      <p className="text-slate-500 text-xs mt-8">{t('secure_connection')}</p>
+      <p className="text-gray-500 text-sm mt-8 font-medium">{t('secure_connection')}</p>
     </div>
   );
 };

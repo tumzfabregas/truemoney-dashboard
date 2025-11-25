@@ -397,21 +397,21 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const backendCodeString = `// Backend Logic (api/index.js)...`.trim();
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 mt-4 sm:mt-8 font-sans pb-24 text-slate-200">
+    <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 mt-4 sm:mt-10 font-sans pb-24 text-orange-50/90">
       
       {/* Header / Title Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
         <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-                <Wallet className="text-orange-500" />
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+                <Wallet className="text-orange-500" size={32} />
                 <span>TrueMoney <span className="text-orange-500 font-light hidden xs:inline">/ Dashboard</span></span>
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1">{t('dashboard_subtitle')}</p>
+            <p className="text-sm text-gray-400 mt-2 font-medium">{t('dashboard_subtitle')}</p>
         </div>
 
-        {/* Navigation Tabs (Dark Style) */}
+        {/* Navigation Tabs (Grey Style) */}
         {isAdmin && (
-            <div className="w-full md:w-auto flex bg-[#1E1F20] p-1 rounded-xl border border-[#444746] shadow-sm overflow-x-auto no-scrollbar">
+            <div className="w-full md:w-auto flex bg-[#454545] p-1.5 rounded-xl border border-[#575757] shadow-lg overflow-x-auto no-scrollbar">
                 {[
                     { id: 'dashboard', label: t('tab_dashboard'), icon: LayoutDashboard },
                     { id: 'services', label: t('tab_services'), icon: LayoutGrid },
@@ -421,13 +421,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     <button 
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
-                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
+                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 whitespace-nowrap ${
                             activeTab === tab.id 
-                            ? 'bg-orange-600 text-white shadow-md shadow-orange-500/20' 
-                            : 'text-slate-400 hover:text-white hover:bg-[#3E3F40]'
+                            ? 'bg-orange-600 text-white shadow-md shadow-orange-900/40' 
+                            : 'text-gray-400 hover:text-white hover:bg-[#555555]'
                         }`}
                     >
-                        <tab.icon size={16} /> <span className="hidden xs:inline">{tab.label}</span>
+                        <tab.icon size={18} /> <span className="hidden xs:inline">{tab.label}</span>
                     </button>
                 ))}
             </div>
@@ -435,77 +435,77 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       </div>
 
       {activeTab === 'dashboard' && (
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-6">
             
             {/* Control Bar */}
-            <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-4 shadow-sm flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
+            <div className="bg-[#454545] border border-[#575757] rounded-2xl p-5 shadow-lg flex flex-col md:flex-row justify-between items-stretch md:items-center gap-5">
                 
                 {/* Data Source Toggle */}
-                <div className="flex flex-col sm:flex-row items-center gap-3">
-                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider w-full sm:w-auto text-left">{t('source')}</span>
-                     <div className="w-full sm:w-auto flex bg-[#2A2B2C] p-1 rounded-lg border border-[#444746]">
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                     <span className="text-xs font-bold text-gray-400 uppercase tracking-widest w-full sm:w-auto text-left">{t('source')}</span>
+                     <div className="w-full sm:w-auto flex bg-[#373737] p-1.5 rounded-xl border border-[#575757] shadow-inner">
                          {isAdmin ? (
                             <>
                                 <button 
                                     onClick={() => { setDataSource('mock'); setCurrentPage(1); }}
-                                    className={`flex-1 sm:flex-none justify-center flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${dataSource === 'mock' ? 'bg-[#444746] text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                                    className={`flex-1 sm:flex-none justify-center flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all uppercase tracking-wide ${dataSource === 'mock' ? 'bg-[#575757] text-white shadow-md' : 'text-gray-500 hover:text-gray-300'}`}
                                 >
-                                    <Database size={12} /> {t('mock')}
+                                    <Database size={14} /> {t('mock')}
                                 </button>
                                 <button 
                                     onClick={() => { setDataSource('live'); setCurrentPage(1); }}
-                                    className={`flex-1 sm:flex-none justify-center flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${dataSource === 'live' ? 'bg-green-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                                    className={`flex-1 sm:flex-none justify-center flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all uppercase tracking-wide ${dataSource === 'live' ? 'bg-green-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-300'}`}
                                 >
-                                    <Globe size={12} /> {t('live')}
+                                    <Globe size={14} /> {t('live')}
                                 </button>
                             </>
                          ) : (
-                             <div className="w-full flex justify-center items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md bg-green-900/30 text-green-400 border border-green-800">
-                                 <Globe size={12} /> {t('live')}
+                             <div className="w-full flex justify-center items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg bg-green-900/30 text-green-400 border border-green-800 uppercase tracking-wide">
+                                 <Globe size={14} /> {t('live')}
                              </div>
                          )}
                      </div>
                 </div>
 
                 {/* Status & Actions */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 text-sm">
-                    <div className="hidden lg:flex items-center gap-2 text-slate-400 bg-[#2A2B2C] px-3 py-1.5 rounded-lg border border-[#444746]">
-                        <Clock size={14} className="text-orange-500"/> 
-                        <span className="text-xs font-mono">{lastUpdated.toLocaleTimeString('th-TH')}</span>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <div className="hidden lg:flex items-center gap-2 text-orange-200/80 bg-[#373737] px-4 py-2 rounded-xl border border-[#575757] shadow-inner">
+                        <Clock size={16} className="text-orange-500"/> 
+                        <span className="text-sm font-mono font-medium">{lastUpdated.toLocaleTimeString('th-TH')}</span>
                     </div>
 
                     <div className="grid grid-cols-2 sm:flex gap-3">
                         <button 
                             onClick={toggleAutoRefresh}
-                            className={`flex justify-center items-center gap-2 px-3 py-2 sm:py-1.5 rounded-lg border transition-all text-xs font-medium ${isAutoRefresh ? 'bg-green-900/30 border-green-800 text-green-400' : 'bg-[#2A2B2C] border-[#444746] text-slate-400'}`}
+                            className={`flex justify-center items-center gap-2 px-4 py-2.5 sm:py-2 rounded-xl border transition-all text-xs font-bold uppercase tracking-wide ${isAutoRefresh ? 'bg-green-900/20 border-green-800 text-green-400' : 'bg-[#373737] border-[#575757] text-gray-500'}`}
                         >
-                            <Power size={12} /> {isAutoRefresh ? t('auto_on') : t('auto_off')}
+                            <Power size={14} /> {isAutoRefresh ? t('auto_on') : t('auto_off')}
                         </button>
 
                         <button 
                             onClick={handleManualRefresh}
                             disabled={loading}
-                            className="flex justify-center items-center gap-2 px-3 py-2 sm:py-1.5 rounded-lg bg-[#3E3F40] hover:bg-[#4E4F50] text-white transition-all text-xs font-medium border border-[#444746]"
+                            className="flex justify-center items-center gap-2 px-4 py-2.5 sm:py-2 rounded-xl bg-[#575757] hover:bg-[#666666] text-white transition-all text-xs font-bold border border-[#666666] shadow-sm uppercase tracking-wide"
                         >
-                            <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> {t('refresh')}
+                            <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> {t('refresh')}
                         </button>
                     </div>
 
                     {isAdmin && (
                         <button 
                             onClick={handleClearData}
-                            className="flex justify-center items-center gap-2 px-3 py-2 sm:py-1.5 rounded-lg bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/30 transition-all text-xs font-medium"
+                            className="flex justify-center items-center gap-2 px-4 py-2.5 sm:py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition-all text-xs font-bold uppercase tracking-wide"
                         >
-                            <Trash2 size={12} /> {t('clear')}
+                            <Trash2 size={14} /> {t('clear')}
                         </button>
                     )}
                 </div>
             </div>
 
             {/* Main Table Card */}
-            <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl overflow-hidden shadow-sm">
+            <div className="bg-[#454545] border border-[#575757] rounded-2xl overflow-hidden shadow-xl">
                 {/* Desktop Table Header */}
-                <div className="hidden md:grid grid-cols-12 gap-4 p-4 bg-[#2A2B2C] border-b border-[#444746] text-xs font-bold text-slate-400 uppercase tracking-wider">
+                <div className="hidden md:grid grid-cols-12 gap-6 p-5 bg-[#373737] border-b border-[#575757] text-xs font-bold text-gray-400 uppercase tracking-widest">
                     <div className="col-span-3">{t('sender')}</div>
                     <div className="col-span-3 text-right">{t('amount')}</div>
                     <div className="col-span-3 text-center">{t('date')}</div>
@@ -515,60 +515,57 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 {/* Table Body */}
                 <div className="relative min-h-[400px]">
                     {loading && !isAutoRefresh && (
-                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/30 backdrop-blur-[2px]">
-                            <RefreshCw className="animate-spin text-orange-500" size={32} />
+                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#373737]/50 backdrop-blur-sm">
+                            <RefreshCw className="animate-spin text-orange-500" size={40} />
                         </div>
                     )}
 
                     {displayedTransactions.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-64 text-slate-500">
-                            <div className="bg-[#2A2B2C] p-4 rounded-full mb-3 border border-[#444746]">
-                                <History size={32} />
+                        <div className="flex flex-col items-center justify-center h-80 text-gray-500">
+                            <div className="bg-[#373737] p-5 rounded-full mb-4 border border-[#575757] shadow-inner">
+                                <History size={40} />
                             </div>
-                            <span className="font-medium text-slate-400">{t('no_transactions')}</span>
-                            <span className="text-xs mt-1">{t('waiting_webhook')}</span>
+                            <span className="font-semibold text-lg text-gray-400">{t('no_transactions')}</span>
+                            <span className="text-sm mt-1 opacity-70">{t('waiting_webhook')}</span>
                         </div>
                     ) : (
-                        <div className="divide-y divide-[#444746]">
+                        <div className="divide-y divide-[#575757]">
                             {displayedTransactions.map((tx) => (
                                 <React.Fragment key={tx.id}>
                                     {/* Desktop Row */}
-                                    <div className="hidden md:grid grid-cols-12 gap-4 p-4 items-center hover:bg-[#2A2B2C] transition-colors group">
-                                        <div className="col-span-3 flex items-center gap-3">
-                                            <span className="text-sm font-medium text-slate-200 font-mono tracking-wide">
+                                    <div className="hidden md:grid grid-cols-12 gap-6 p-5 items-center hover:bg-[#373737] transition-colors group">
+                                        <div className="col-span-3 flex items-center gap-4">
+                                            <span className="text-base font-semibold text-white font-mono tracking-wide">
                                                 {formatPhoneNumber(tx.sender)}
                                             </span>
                                         </div>
                                         <div className="col-span-3 text-right">
-                                            <span className="inline-block px-2 py-1 rounded bg-green-900/30 text-green-400 border border-green-800 text-sm font-bold font-mono">
+                                            <span className="inline-block px-3 py-1.5 rounded-lg bg-green-500/10 text-green-400 border border-green-500/20 text-base font-bold font-mono shadow-sm">
                                                 +{tx.amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                                             </span>
                                         </div>
-                                        <div className="col-span-3 text-center text-xs text-slate-500 font-mono">
+                                        <div className="col-span-3 text-center text-sm text-gray-400 font-mono">
                                             {formatDate(tx.date)}
                                         </div>
-                                        <div className="col-span-3 text-sm text-slate-400 truncate opacity-80 group-hover:opacity-100">
+                                        <div className="col-span-3 text-sm text-orange-100/70 truncate group-hover:text-white transition-colors">
                                             {tx.message}
                                         </div>
                                     </div>
 
                                     {/* Mobile Card Row */}
-                                    <div className="md:hidden p-4 flex flex-col gap-1 hover:bg-[#2A2B2C] transition-colors border-b border-[#444746] last:border-0">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <span className="text-sm font-medium text-slate-200 font-mono tracking-wide">
+                                    <div className="md:hidden p-5 flex flex-col gap-3 hover:bg-[#373737] transition-colors border-b border-[#575757] last:border-0">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-lg font-bold text-white font-mono tracking-wide">
                                                 {formatPhoneNumber(tx.sender)}
                                             </span>
-                                            <span className="px-2 py-0.5 rounded bg-green-900/30 text-green-400 border border-green-800 text-sm font-bold font-mono">
+                                            <span className="px-3 py-1 rounded-lg bg-green-500/10 text-green-400 border border-green-500/20 text-lg font-bold font-mono">
                                                 +{tx.amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                                             </span>
                                         </div>
-                                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                                            <span className="font-mono">{formatDate(tx.date)}</span>
+                                        <div className="flex items-center gap-3 text-sm text-gray-400 font-medium">
+                                            <span className="font-mono bg-[#373737] px-2 py-1 rounded border border-[#575757]">{formatDate(tx.date)}</span>
                                             {tx.message && (
-                                                <>
-                                                  <span className="w-1 h-1 rounded-full bg-slate-600"></span>
-                                                  <span className="text-slate-400">{tx.message}</span>
-                                                </>
+                                                <span className="text-orange-100/80 truncate flex-1">{tx.message}</span>
                                             )}
                                         </div>
                                     </div>
@@ -579,30 +576,30 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 </div>
 
                 {/* Pagination Footer */}
-                <div className="p-4 border-t border-[#444746] bg-[#2A2B2C] flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div className="text-xs text-slate-400 text-center sm:text-left">
-                        {t('showing')} {displayedTransactions.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} {t('to')} {Math.min(currentPage * ITEMS_PER_PAGE, transactions.length)} {t('of')} {transactions.length} {t('entries')}
+                <div className="p-5 border-t border-[#575757] bg-[#373737] flex flex-col sm:flex-row justify-between items-center gap-5">
+                    <div className="text-sm text-gray-400 text-center sm:text-left font-medium">
+                        {t('showing')} <span className="text-white">{displayedTransactions.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}</span> {t('to')} <span className="text-white">{Math.min(currentPage * ITEMS_PER_PAGE, transactions.length)}</span> {t('of')} <span className="text-white">{transactions.length}</span> {t('entries')}
                     </div>
                     
                     <div className="flex items-center gap-2">
                         <button 
                             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                             disabled={currentPage === 1 || loading}
-                            className="p-2 rounded-lg bg-[#1E1F20] border border-[#444746] text-slate-400 hover:text-white hover:bg-[#3E3F40] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            className="p-2.5 rounded-lg bg-[#454545] border border-[#575757] text-gray-400 hover:text-white hover:bg-[#555555] disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
                         >
-                            <ChevronLeft size={16} />
+                            <ChevronLeft size={18} />
                         </button>
                         
-                        <div className="px-4 py-1.5 rounded-lg bg-[#1E1F20] border border-[#444746] text-xs font-mono text-slate-300">
+                        <div className="px-4 py-2 rounded-lg bg-[#454545] border border-[#575757] text-sm font-bold font-mono text-gray-200 shadow-inner">
                             {t('page')} {currentPage} / {Math.max(totalPages, 1)}
                         </div>
 
                         <button 
                             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                             disabled={currentPage >= totalPages || loading}
-                            className="p-2 rounded-lg bg-[#1E1F20] border border-[#444746] text-slate-400 hover:text-white hover:bg-[#3E3F40] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            className="p-2.5 rounded-lg bg-[#454545] border border-[#575757] text-gray-400 hover:text-white hover:bg-[#555555] disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
                         >
-                            <ChevronRight size={16} />
+                            <ChevronRight size={18} />
                         </button>
                     </div>
                 </div>
@@ -610,62 +607,62 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
             {/* Admin Tools Section */}
             {isAdmin && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-10">
                     
                     {/* Left Panel: Configuration */}
-                    <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-4 sm:p-6 shadow-sm">
-                        <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-                            <Server size={16} className="text-blue-500" /> {t('config_sim')}
+                    <div className="bg-[#454545] border border-[#575757] rounded-2xl p-6 shadow-xl">
+                        <h3 className="text-sm font-bold text-orange-500 uppercase tracking-widest mb-6 flex items-center gap-3">
+                            <Server size={18} /> {t('config_sim')}
                         </h3>
 
-                        <div className="space-y-4">
+                        <div className="space-y-6">
                             {/* Simulator */}
-                            <div className="bg-[#2A2B2C] p-4 rounded-xl border border-[#444746]">
-                                <label className="text-xs text-slate-400 font-bold uppercase mb-2 block">{t('simulator')}</label>
+                            <div className="bg-[#373737] p-6 rounded-xl border border-[#575757] shadow-inner">
+                                <label className="text-xs text-gray-400 font-bold uppercase mb-3 block tracking-wide">{t('simulator')}</label>
                                 <button 
                                     onClick={handleSimulateWebhook}
-                                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white text-sm font-medium py-2.5 rounded-lg shadow-md shadow-orange-500/20 transition-all active:scale-95"
+                                    className="w-full flex items-center justify-center gap-3 bg-orange-600 hover:bg-orange-500 text-white text-sm font-bold py-3.5 rounded-xl shadow-lg shadow-orange-900/40 transition-all active:scale-98"
                                 >
-                                    <Play size={16} fill="currentColor" /> {t('simulate_btn')}
+                                    <Play size={18} fill="currentColor" /> {t('simulate_btn')}
                                 </button>
-                                <p className="text-[10px] text-slate-500 mt-2 text-center">
+                                <p className="text-[11px] text-gray-500 mt-3 text-center font-medium">
                                     {t('simulate_desc')} {dataSource === 'live' ? 'Real API' : 'Mock Store'}.
                                 </p>
                             </div>
 
                             {/* Setup Info */}
-                            <div className="bg-[#2A2B2C] p-4 rounded-xl border border-[#444746]">
-                                <div className="flex justify-between items-center mb-2">
-                                    <label className="text-xs text-slate-400 font-bold uppercase">{t('setup_info')}</label>
-                                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded ${dbStatus.includes('Connected') ? 'bg-green-900/30 text-green-400 border border-green-800' : 'bg-red-900/30 text-red-400 border border-red-800'}`}>
+                            <div className="bg-[#373737] p-6 rounded-xl border border-[#575757] shadow-inner">
+                                <div className="flex justify-between items-center mb-3">
+                                    <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">{t('setup_info')}</label>
+                                    <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide ${dbStatus.includes('Connected') ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
                                         {dbStatus}
                                     </span>
                                 </div>
                                 
-                                <div className="flex gap-2 mb-3">
-                                    <div className="flex-1 bg-[#131314] border border-[#444746] rounded-lg px-3 py-2 text-xs font-mono text-slate-400 overflow-hidden whitespace-nowrap text-ellipsis">
+                                <div className="flex gap-3 mb-5">
+                                    <div className="flex-1 bg-[#2b2b2b] border border-[#575757] rounded-xl px-4 py-3 text-xs font-mono text-gray-300 overflow-hidden whitespace-nowrap text-ellipsis shadow-inner">
                                         {dataSource === 'live' ? `${currentOrigin}/api/webhook/truemoney` : 'Switch to Live Mode to see URL'}
                                     </div>
-                                    <button onClick={handleCopyEndpoint} className="bg-[#131314] hover:bg-[#3E3F40] text-slate-400 p-2 rounded-lg border border-[#444746] transition-colors">
-                                        {copied ? <Check size={16} className="text-green-500"/> : <Clipboard size={16}/>}
+                                    <button onClick={handleCopyEndpoint} className="bg-[#454545] hover:bg-[#555555] text-gray-300 p-3 rounded-xl border border-[#575757] transition-colors shadow-sm">
+                                        {copied ? <Check size={18} className="text-green-500"/> : <Clipboard size={18}/>}
                                     </button>
                                 </div>
 
-                                <div className="pt-3 border-t border-[#444746]">
-                                    <label className="text-[10px] text-slate-400 font-bold uppercase mb-1 block">{t('verification_secret')}</label>
-                                    <div className="flex flex-col sm:flex-row gap-2">
+                                <div className="pt-4 border-t border-[#575757]">
+                                    <label className="text-[10px] text-gray-400 font-bold uppercase mb-2 block tracking-wide">{t('verification_secret')}</label>
+                                    <div className="flex flex-col sm:flex-row gap-3">
                                         <input 
                                             type="text" 
                                             value={verificationSecret}
                                             onChange={(e) => { setVerificationSecret(e.target.value); setIsVerified(false); }}
                                             placeholder={t('verification_placeholder')}
-                                            className="flex-1 bg-[#131314] border border-[#444746] text-xs text-slate-300 px-3 py-2 rounded-lg focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors font-mono"
+                                            className="flex-1 bg-[#2b2b2b] border border-[#575757] text-sm text-gray-200 px-4 py-2.5 rounded-xl focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors font-mono shadow-inner placeholder:text-gray-600"
                                         />
                                         <button 
                                             onClick={handleSaveSecret}
-                                            className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1 ${isVerified ? 'bg-green-600 text-white shadow-md shadow-green-900' : 'bg-[#3E3F40] hover:bg-[#4E4F50] text-white'}`}
+                                            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 uppercase tracking-wide ${isVerified ? 'bg-green-600 text-white shadow-md shadow-green-900/40' : 'bg-[#575757] hover:bg-[#666666] text-white'}`}
                                         >
-                                            {isVerified ? <Check size={14} /> : t('save')}
+                                            {isVerified ? <Check size={16} /> : t('save')}
                                         </button>
                                     </div>
                                 </div>
@@ -674,47 +671,47 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     </div>
 
                     {/* Right Panel: Tester & AI */}
-                    <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-4 sm:p-6 shadow-sm">
-                        <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-                            <Code size={16} className="text-purple-500" /> {t('advanced_tools')}
+                    <div className="bg-[#454545] border border-[#575757] rounded-2xl p-6 shadow-xl">
+                        <h3 className="text-sm font-bold text-orange-500 uppercase tracking-widest mb-6 flex items-center gap-3">
+                            <Code size={18} /> {t('advanced_tools')}
                         </h3>
 
-                        <div className="space-y-4">
+                        <div className="space-y-6">
                             {/* JSON Tester */}
-                            <div className="bg-[#2A2B2C] p-4 rounded-xl border border-[#444746]">
-                                <div className="flex justify-between items-center mb-2">
-                                    <label className="text-xs text-slate-400 font-bold uppercase">{t('payload_tester')}</label>
+                            <div className="bg-[#373737] p-6 rounded-xl border border-[#575757] shadow-inner">
+                                <div className="flex justify-between items-center mb-3">
+                                    <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">{t('payload_tester')}</label>
                                 </div>
                                 <textarea 
                                     value={jsonInput}
                                     onChange={(e) => setJsonInput(e.target.value)}
                                     placeholder={t('payload_placeholder')}
-                                    className="w-full bg-[#131314] border border-[#444746] text-slate-300 text-xs p-3 rounded-lg h-24 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono resize-none mb-2 placeholder:text-slate-600"
+                                    className="w-full bg-[#2b2b2b] border border-[#575757] text-gray-200 text-xs p-4 rounded-xl h-28 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono resize-none mb-3 placeholder:text-gray-600 shadow-inner"
                                 />
-                                {jsonError && <p className="text-red-400 text-xs mb-2 bg-red-900/30 p-2 rounded border border-red-800">{jsonError}</p>}
+                                {jsonError && <p className="text-red-400 text-xs mb-3 bg-red-500/10 p-2.5 rounded-lg border border-red-500/20 flex items-center gap-2"><X size={12}/>{jsonError}</p>}
                                 <button 
                                     onClick={handlePayloadTest}
-                                    className="w-full flex items-center justify-center gap-2 bg-[#3E3F40] hover:bg-[#4E4F50] text-white text-xs font-medium py-2 rounded-lg transition-colors"
+                                    className="w-full flex items-center justify-center gap-2 bg-[#575757] hover:bg-[#666666] text-white text-xs font-bold py-3 rounded-xl transition-all uppercase tracking-wide shadow-sm"
                                 >
                                     <Play size={14} /> {t('send_payload')}
                                 </button>
                             </div>
 
                             {/* AI Analysis */}
-                            <div className="bg-[#2A2B2C] p-4 rounded-xl border border-[#444746]">
-                                <div className="flex justify-between items-center mb-2">
-                                    <label className="text-xs text-slate-400 font-bold uppercase flex items-center gap-1">
-                                        <Sparkles size={12} className="text-purple-500" /> {t('ai_analysis')}
+                            <div className="bg-[#373737] p-6 rounded-xl border border-[#575757] shadow-inner">
+                                <div className="flex justify-between items-center mb-3">
+                                    <label className="text-xs text-gray-400 font-bold uppercase flex items-center gap-2 tracking-wide">
+                                        <Sparkles size={14} className="text-purple-400" /> {t('ai_analysis')}
                                     </label>
                                     <button 
                                         onClick={handleGeminiAnalysis}
                                         disabled={analyzing}
-                                        className="text-[10px] text-purple-400 hover:text-purple-300 underline disabled:opacity-50"
+                                        className="text-[10px] text-purple-400 hover:text-purple-300 underline disabled:opacity-50 font-medium"
                                     >
                                         {analyzing ? t('thinking') : t('analyze_btn')}
                                     </button>
                                 </div>
-                                <div className="bg-[#131314] p-3 rounded-lg min-h-[60px] text-xs text-slate-400 border border-[#444746] leading-relaxed italic">
+                                <div className="bg-[#2b2b2b] p-4 rounded-xl min-h-[70px] text-sm text-gray-400 border border-[#575757] leading-relaxed italic shadow-inner">
                                     {analysis || "AI analysis of your transactions will appear here..."}
                                 </div>
                             </div>
@@ -728,107 +725,107 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
       {/* Services Tab */}
       {activeTab === 'services' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in zoom-in-95 duration-300">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 animate-in fade-in zoom-in-95 duration-300">
             <div 
-                className="bg-[#1E1F20] p-6 rounded-2xl border border-[#444746] flex flex-col items-center text-center hover:border-orange-500/50 hover:shadow-lg transition-all cursor-pointer group"
+                className="bg-[#454545] p-8 rounded-2xl border border-[#575757] flex flex-col items-center text-center hover:border-orange-500/50 hover:shadow-2xl transition-all cursor-pointer group shadow-lg"
                 onClick={() => setActiveTab('dashboard')}
             >
-                <div className="bg-orange-900/20 p-5 rounded-full mb-4 text-orange-500 group-hover:bg-orange-600 group-hover:text-white transition-all shadow-sm">
-                    <BellRing size={36} />
+                <div className="bg-orange-500/10 p-6 rounded-full mb-6 text-orange-500 group-hover:bg-orange-600 group-hover:text-white transition-all shadow-inner border border-orange-500/20">
+                    <BellRing size={40} />
                 </div>
-                <h3 className="text-slate-200 font-bold mb-2">{t('svc_incoming')}</h3>
-                <p className="text-sm text-slate-400 mb-4">{t('svc_incoming_desc')}</p>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-green-900/30 text-green-400 px-2 py-1 rounded-full border border-green-800">{t('active')}</span>
+                <h3 className="text-white font-bold text-lg mb-2">{t('svc_incoming')}</h3>
+                <p className="text-sm text-gray-400 mb-6 font-medium">{t('svc_incoming_desc')}</p>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-green-500/10 text-green-400 px-3 py-1.5 rounded-full border border-green-500/20">{t('active')}</span>
             </div>
             
-            <div className="bg-[#1E1F20] p-6 rounded-2xl border border-[#444746] flex flex-col items-center text-center opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all cursor-pointer">
-                <div className="bg-[#2A2B2C] p-5 rounded-full mb-4 text-slate-400">
-                    <Smartphone size={36} />
+            <div className="bg-[#454545] p-8 rounded-2xl border border-[#575757] flex flex-col items-center text-center opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all cursor-pointer shadow-lg">
+                <div className="bg-[#373737] p-6 rounded-full mb-6 text-gray-400 shadow-inner border border-[#575757]">
+                    <Smartphone size={40} />
                 </div>
-                <h3 className="text-slate-200 font-bold mb-2">{t('svc_outgoing')}</h3>
-                <p className="text-sm text-slate-400 mb-4">{t('svc_outgoing_desc')}</p>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-[#2A2B2C] text-slate-400 px-2 py-1 rounded-full border border-[#444746]">{t('soon')}</span>
+                <h3 className="text-white font-bold text-lg mb-2">{t('svc_outgoing')}</h3>
+                <p className="text-sm text-gray-400 mb-6 font-medium">{t('svc_outgoing_desc')}</p>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-[#373737] text-gray-400 px-3 py-1.5 rounded-full border border-[#575757]">{t('soon')}</span>
             </div>
 
             <div 
-                className="bg-[#1E1F20] p-6 rounded-2xl border border-[#444746] flex flex-col items-center text-center hover:border-slate-500/50 hover:shadow-lg transition-all cursor-pointer group"
+                className="bg-[#454545] p-8 rounded-2xl border border-[#575757] flex flex-col items-center text-center hover:border-blue-400/50 hover:shadow-2xl transition-all cursor-pointer group shadow-lg"
                 onClick={handleCheckBalance}
             >
-                <div className="bg-[#2A2B2C] p-5 rounded-full mb-4 text-slate-400 group-hover:bg-[#3E3F40] group-hover:text-white transition-all shadow-sm">
-                    <Wallet size={36} />
+                <div className="bg-[#373737] p-6 rounded-full mb-6 text-gray-400 group-hover:bg-blue-500 group-hover:text-white transition-all shadow-inner border border-[#575757]">
+                    <Wallet size={40} />
                 </div>
-                <h3 className="text-slate-200 font-bold mb-2">{t('svc_balance')}</h3>
-                <p className="text-sm text-slate-400 mb-4">{t('svc_balance_desc')}</p>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-900/30 text-blue-400 px-2 py-1 rounded-full border border-blue-800">{t('demo')}</span>
+                <h3 className="text-white font-bold text-lg mb-2">{t('svc_balance')}</h3>
+                <p className="text-sm text-gray-400 mb-6 font-medium">{t('svc_balance_desc')}</p>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-400 px-3 py-1.5 rounded-full border border-blue-500/20">{t('demo')}</span>
             </div>
 
             <div 
-                className="bg-[#1E1F20] p-6 rounded-2xl border border-[#444746] flex flex-col items-center text-center hover:border-orange-500/50 hover:shadow-lg transition-all cursor-pointer group"
+                className="bg-[#454545] p-8 rounded-2xl border border-[#575757] flex flex-col items-center text-center hover:border-orange-500/50 hover:shadow-2xl transition-all cursor-pointer group shadow-lg"
                 onClick={handleCheckLastTx}
             >
-                <div className="bg-orange-900/20 p-5 rounded-full mb-4 text-orange-500 group-hover:bg-orange-600 group-hover:text-white transition-all shadow-sm">
-                    <History size={36} />
+                <div className="bg-orange-500/10 p-6 rounded-full mb-6 text-orange-500 group-hover:bg-orange-600 group-hover:text-white transition-all shadow-inner border border-orange-500/20">
+                    <History size={40} />
                 </div>
-                <h3 className="text-slate-200 font-bold mb-2">{t('svc_last_tx')}</h3>
-                <p className="text-sm text-slate-400 mb-4">{t('svc_last_tx_desc')}</p>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-purple-900/30 text-purple-400 px-2 py-1 rounded-full border border-purple-800">{t('api')}</span>
+                <h3 className="text-white font-bold text-lg mb-2">{t('svc_last_tx')}</h3>
+                <p className="text-sm text-gray-400 mb-6 font-medium">{t('svc_last_tx_desc')}</p>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-purple-500/10 text-purple-400 px-3 py-1.5 rounded-full border border-purple-500/20">{t('api')}</span>
             </div>
         </div>
       )}
 
       {/* Users Tab */}
       {activeTab === 'users' && (
-          <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-4 sm:p-6 shadow-sm animate-in fade-in">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                  <h2 className="text-lg font-bold text-slate-200 flex items-center gap-2">
-                      <Users className="text-orange-500" size={24} /> {t('user_management')}
+          <div className="bg-[#454545] border border-[#575757] rounded-2xl p-6 shadow-xl animate-in fade-in">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-5">
+                  <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                      <Users className="text-orange-500" size={28} /> {t('user_management')}
                   </h2>
                   <button 
                     onClick={() => openUserModal()}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-md shadow-orange-900"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-orange-900/40"
                   >
                       <Plus size={18} /> {t('add_user')}
                   </button>
               </div>
 
-              <div className="overflow-hidden rounded-xl border border-[#444746]">
+              <div className="overflow-hidden rounded-xl border border-[#575757] shadow-lg">
                   <table className="w-full text-left border-collapse">
                       <thead>
-                          <tr className="bg-[#2A2B2C] text-slate-400 text-xs font-bold uppercase tracking-wider">
-                              <th className="p-4">{t('username')}</th>
-                              <th className="p-4 hidden sm:table-cell">{t('role')}</th>
-                              <th className="p-4 text-right"></th>
+                          <tr className="bg-[#373737] text-gray-400 text-xs font-bold uppercase tracking-widest">
+                              <th className="p-5">{t('username')}</th>
+                              <th className="p-5 hidden sm:table-cell">{t('role')}</th>
+                              <th className="p-5 text-right"></th>
                           </tr>
                       </thead>
-                      <tbody className="text-sm text-slate-300 divide-y divide-[#444746] bg-[#1E1F20]">
+                      <tbody className="text-sm text-gray-200 divide-y divide-[#575757] bg-[#454545]">
                           {usersList.map(u => (
-                              <tr key={u.id} className="hover:bg-[#2A2B2C] transition-colors">
-                                  <td className="p-4">
-                                      <div className="font-medium text-slate-200">{u.username}</div>
-                                      <div className="sm:hidden mt-1">
-                                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${u.role === 'admin' ? 'bg-purple-900/30 text-purple-400 border-purple-800' : 'bg-blue-900/30 text-blue-400 border-blue-800'}`}>
+                              <tr key={u.id} className="hover:bg-[#373737] transition-colors">
+                                  <td className="p-5">
+                                      <div className="font-bold text-lg text-white">{u.username}</div>
+                                      <div className="sm:hidden mt-2">
+                                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border ${u.role === 'admin' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
                                               {u.role === 'admin' ? t('role_admin') : t('role_member')}
                                           </span>
                                       </div>
                                   </td>
-                                  <td className="p-4 hidden sm:table-cell">
-                                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${u.role === 'admin' ? 'bg-purple-900/30 text-purple-400 border-purple-800' : 'bg-blue-900/30 text-blue-400 border-blue-800'}`}>
+                                  <td className="p-5 hidden sm:table-cell">
+                                      <span className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide border ${u.role === 'admin' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
                                           {u.role === 'admin' ? t('role_admin') : t('role_member')}
                                       </span>
                                   </td>
-                                  <td className="p-4 flex justify-end gap-2">
+                                  <td className="p-5 flex justify-end gap-3">
                                       <button 
                                         onClick={() => openUserModal(u)}
-                                        className="p-2 hover:bg-[#3E3F40] rounded-lg text-slate-400 hover:text-slate-200 transition-colors"
+                                        className="p-2.5 hover:bg-[#575757] rounded-lg text-gray-400 hover:text-white transition-colors border border-transparent hover:border-[#666666]"
                                       >
-                                          <Edit size={16} />
+                                          <Edit size={18} />
                                       </button>
                                       <button 
                                         onClick={() => handleDeleteUser(u.id)}
-                                        className="p-2 hover:bg-red-900/30 rounded-lg text-red-400 hover:text-red-300 transition-colors"
+                                        className="p-2.5 hover:bg-red-500/20 rounded-lg text-red-400 hover:text-red-300 transition-colors border border-transparent hover:border-red-500/30"
                                         disabled={u.username === 'admin'}
                                       >
-                                          <Trash2 size={16} />
+                                          <Trash2 size={18} />
                                       </button>
                                   </td>
                               </tr>
@@ -841,25 +838,25 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
       {/* Code Tab */}
       {activeTab === 'code' && (
-        <div className="bg-[#0a0f1c] rounded-2xl border border-[#444746] overflow-hidden shadow-2xl animate-in fade-in">
-             <div className="bg-[#1E1F20] px-4 py-3 border-b border-[#444746] flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                    <div className="flex gap-1.5">
+        <div className="bg-[#1a1a1a] rounded-2xl border border-[#575757] overflow-hidden shadow-2xl animate-in fade-in">
+             <div className="bg-[#373737] px-5 py-4 border-b border-[#575757] flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                    <div className="flex gap-2">
                         <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50"></div>
                         <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
                         <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50"></div>
                     </div>
-                    <span className="text-xs font-mono text-slate-400 ml-3">api/index.js</span>
+                    <span className="text-xs font-mono text-gray-400 ml-2 font-medium">api/index.js</span>
                 </div>
                 <button 
                     onClick={handleCopyBackendCode}
-                    className="text-xs bg-[#2A2B2C] hover:bg-[#3E3F40] text-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors border border-[#444746]"
+                    className="text-xs bg-[#454545] hover:bg-[#575757] text-gray-300 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors border border-[#575757] font-bold uppercase tracking-wide"
                 >
-                    {codeCopied ? <Check size={14} className="text-green-500"/> : <Clipboard size={14} />} {t('copy')}
+                    {codeCopied ? <Check size={16} className="text-green-500"/> : <Clipboard size={16} />} {t('copy')}
                 </button>
              </div>
-             <div className="p-0 overflow-x-auto bg-[#0a0f1c]">
-                 <pre className="text-xs md:text-sm font-mono text-slate-300 p-6 leading-relaxed whitespace-pre-wrap">
+             <div className="p-0 overflow-x-auto bg-[#1a1a1a]">
+                 <pre className="text-xs md:text-sm font-mono text-gray-300 p-8 leading-relaxed whitespace-pre-wrap">
                     <code className="language-javascript">{backendCodeString}</code>
                  </pre>
              </div>
@@ -869,61 +866,66 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       {/* User Modal */}
       {isUserModalOpen && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-              <div className="bg-[#1E1F20] rounded-2xl shadow-2xl border border-[#444746] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                  <div className="px-6 py-4 border-b border-[#444746] flex justify-between items-center bg-[#2A2B2C]">
-                      <h3 className="text-slate-200 font-bold">{editingUser ? t('edit_user') : t('new_user')}</h3>
-                      <button onClick={() => setIsUserModalOpen(false)} className="text-slate-400 hover:text-slate-200 transition-colors">
-                          <X size={20} />
+              <div className="bg-[#454545] rounded-2xl shadow-2xl border border-[#575757] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                  <div className="px-6 py-5 border-b border-[#575757] flex justify-between items-center bg-[#373737]">
+                      <h3 className="text-white font-bold text-lg">{editingUser ? t('edit_user') : t('new_user')}</h3>
+                      <button onClick={() => setIsUserModalOpen(false)} className="text-gray-400 hover:text-white transition-colors">
+                          <X size={24} />
                       </button>
                   </div>
-                  <form onSubmit={handleUserSubmit} className="p-6 space-y-4">
+                  <form onSubmit={handleUserSubmit} className="p-8 space-y-5">
                       {userFormError && (
-                          <div className="bg-red-900/30 text-red-400 text-sm p-3 rounded-lg border border-red-800 flex items-center gap-2">
-                              <X size={14} /> {userFormError}
+                          <div className="bg-red-500/10 text-red-300 text-sm p-3 rounded-xl border border-red-500/20 flex items-center gap-2">
+                              <X size={16} /> {userFormError}
                           </div>
                       )}
                       <div>
-                          <label className="block text-slate-400 text-xs font-bold uppercase mb-1.5">{t('username')}</label>
+                          <label className="block text-gray-400 text-xs font-bold uppercase mb-2 tracking-wide">{t('username')}</label>
                           <input 
                               type="text" 
                               required
                               value={userForm.username}
                               onChange={e => setUserForm({...userForm, username: e.target.value})}
-                              className="w-full bg-[#131314] border border-[#444746] text-white px-3 py-2.5 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors"
+                              className="w-full bg-[#373737] border border-[#575757] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors text-base"
                           />
                       </div>
                       <div>
-                          <label className="block text-slate-400 text-xs font-bold uppercase mb-1.5">{t('password')}</label>
+                          <label className="block text-gray-400 text-xs font-bold uppercase mb-2 tracking-wide">{t('password')}</label>
                           <input 
                               type="text" 
                               required
                               value={userForm.password}
                               onChange={e => setUserForm({...userForm, password: e.target.value})}
-                              className="w-full bg-[#131314] border border-[#444746] text-white px-3 py-2.5 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors"
+                              className="w-full bg-[#373737] border border-[#575757] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors text-base"
                           />
                       </div>
                       <div>
-                          <label className="block text-slate-400 text-xs font-bold uppercase mb-1.5">{t('role')}</label>
-                          <select 
-                              value={userForm.role}
-                              onChange={e => setUserForm({...userForm, role: e.target.value as 'admin'|'member'})}
-                              className="w-full bg-[#131314] border border-[#444746] text-white px-3 py-2.5 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors appearance-none"
-                          >
-                              <option value="member">{t('role_member')}</option>
-                              <option value="admin">{t('role_admin')}</option>
-                          </select>
+                          <label className="block text-gray-400 text-xs font-bold uppercase mb-2 tracking-wide">{t('role')}</label>
+                          <div className="relative">
+                            <select 
+                                value={userForm.role}
+                                onChange={e => setUserForm({...userForm, role: e.target.value as 'admin'|'member'})}
+                                className="w-full bg-[#373737] border border-[#575757] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors appearance-none text-base"
+                            >
+                                <option value="member">{t('role_member')}</option>
+                                <option value="admin">{t('role_admin')}</option>
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
+                                <ChevronRight size={16} className="rotate-90" />
+                            </div>
+                          </div>
                       </div>
-                      <div className="pt-4 flex justify-end gap-3">
+                      <div className="pt-6 flex justify-end gap-3">
                           <button 
                             type="button" 
                             onClick={() => setIsUserModalOpen(false)}
-                            className="px-4 py-2 bg-[#2A2B2C] hover:bg-[#3E3F40] text-slate-300 rounded-lg text-sm font-medium transition-colors"
+                            className="px-5 py-2.5 bg-[#373737] hover:bg-[#575757] text-gray-300 rounded-xl text-sm font-bold transition-colors border border-[#575757]"
                           >
                               {t('cancel')}
                           </button>
                           <button 
                             type="submit" 
-                            className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-orange-900"
+                            className="px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-sm font-bold transition-colors shadow-lg shadow-orange-900/40"
                           >
                               {t('save_user')}
                           </button>
