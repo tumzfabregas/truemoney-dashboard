@@ -46,7 +46,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] p-4 bg-[#131314]">
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] p-4 bg-[#353639]">
       
       <div className="bg-[#1E1F20] p-10 rounded-[2rem] shadow-2xl border border-[#444746] w-full max-w-md relative z-10 mx-4">
         

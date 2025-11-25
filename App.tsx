@@ -80,7 +80,7 @@ function AppContent() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#111827]">
+    <div className="flex flex-col min-h-screen bg-[#353639]">
       <Header user={user} onLogout={handleLogout} onChangePasswordClick={handleChangePasswordClick} />
       
       <main className="flex-grow">
