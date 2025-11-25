@@ -46,12 +46,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-140px)] p-4 relative overflow-hidden bg-[#111827]">
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-140px)] p-4 relative overflow-hidden bg-[#131314]">
       
-      <div className="bg-[#1f2937] p-8 rounded-3xl shadow-2xl border border-slate-700 w-full max-w-sm relative z-10 mx-4">
+      <div className="bg-[#1E1F20] p-8 rounded-3xl shadow-2xl border border-[#444746] w-full max-w-sm relative z-10 mx-4">
         
         <div className="flex flex-col items-center mb-8">
-            <div className="bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-700 mb-5 text-orange-500">
+            <div className="bg-[#2A2B2C] p-4 rounded-2xl shadow-sm border border-[#444746] mb-5 text-orange-500">
                 <Wallet size={36} />
             </div>
             <h2 className="text-xl font-bold text-white tracking-wide uppercase">{t('app_name')}</h2>
@@ -70,7 +70,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               type="text" 
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-slate-600"
+              className="w-full bg-[#131314] border border-[#444746] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-slate-600"
               disabled={loading}
             />
           </div>
@@ -80,7 +80,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               type="password" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-slate-600"
+              className="w-full bg-[#131314] border border-[#444746] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-slate-600"
               disabled={loading}
             />
           </div>

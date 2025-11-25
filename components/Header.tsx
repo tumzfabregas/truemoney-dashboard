@@ -17,7 +17,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onChangePasswordClick }
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-[#1f2937] text-white shadow-md border-b border-slate-700">
+    <header className="sticky top-0 z-50 bg-[#1E1F20] text-white shadow-md border-b border-[#444746]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
         
         {/* Brand */}
@@ -35,14 +35,14 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onChangePasswordClick }
           {/* Language Toggle */}
           <button 
             onClick={toggleLanguage}
-            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors text-xs font-medium"
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-full bg-[#2A2B2C] border border-[#444746] hover:bg-[#3E3F40] text-slate-300 hover:text-white transition-colors text-xs font-medium"
           >
              <Languages size={14} />
              <span className="uppercase">{language}</span>
           </button>
 
           {user && (
-            <div className="flex items-center bg-slate-800 rounded-full pl-3 pr-1 py-1 border border-slate-700">
+            <div className="flex items-center bg-[#2A2B2C] rounded-full pl-3 pr-1 py-1 border border-[#444746]">
               <span className="text-slate-200 text-sm font-medium flex items-center gap-2 mr-2">
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
                 <span className="hidden sm:inline">{user.username}</span>
@@ -52,7 +52,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onChangePasswordClick }
                 {onChangePasswordClick && (
                     <button 
                         onClick={onChangePasswordClick}
-                        className="p-2 rounded-full hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+                        className="p-2 rounded-full hover:bg-[#3E3F40] text-slate-400 hover:text-white transition-colors"
                         title={t('change_password')}
                     >
                         <KeyRound size={16} />
@@ -60,7 +60,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onChangePasswordClick }
                 )}
                 <button 
                   onClick={onLogout}
-                  className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white transition-all shadow-sm"
+                  className="p-2 rounded-full bg-[#3E3F40] hover:bg-[#4E4F50] text-slate-200 hover:text-white transition-all shadow-sm"
                   title={t('logout')}
                 >
                   <LogOut size={16} />
