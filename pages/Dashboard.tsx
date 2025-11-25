@@ -542,9 +542,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                      
                      {/* Wallet Balance Display */}
                      {dataSource === 'live' && walletBalance && (
-                        <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-[#2b2d30] border border-[#444746] text-orange-500 font-mono font-bold text-sm shadow-inner">
-                            <Wallet size={16} />
-                            <span>฿ {walletBalance}</span>
+                        <div className="w-full sm:w-auto flex items-center justify-center sm:justify-start gap-3 px-4 py-2.5 sm:py-2 rounded-xl bg-[#2b2d30] border border-[#444746] shadow-inner">
+                            <Wallet size={18} className="text-orange-500" />
+                            <span className="text-white font-mono font-bold text-sm tracking-wide">฿ {walletBalance}</span>
                         </div>
                      )}
                 </div>
