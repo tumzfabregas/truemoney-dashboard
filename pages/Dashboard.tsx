@@ -3,7 +3,7 @@ import { Transaction, User } from '../types';
 import { fetchTransactions, simulateIncomingWebhook, clearAllData, getUsers, addUser, updateUser, deleteUser } from '../services/mockService';
 import { fetchLiveTransactions, triggerLiveWebhook, clearLiveTransactions, fetchUsersApi, addUserApi, updateUserApi, deleteUserApi } from '../services/apiService';
 import { analyzeTransactions } from '../services/geminiService';
-import { RefreshCw, Sparkles, Server, Clipboard, Check, Clock, Power, Play, Code, Trash2, FileText, LayoutDashboard, Globe, Database, Lock, Users, Edit, Plus, X, Wallet, BellRing, History, Smartphone, LayoutGrid, KeyRound } from 'lucide-react';
+import { RefreshCw, Sparkles, Server, Clipboard, Check, Clock, Power, Play, Code, Trash2, FileText, LayoutDashboard, Globe, Database, Lock, Users, Edit, Plus, X, Wallet, BellRing, History, Smartphone, LayoutGrid, KeyRound, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 
 interface DashboardProps {
   user: User;
@@ -15,16 +15,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   
   // Initialize DataSource with Persistence
   const [dataSource, setDataSource] = useState<'mock' | 'live'>(() => {
-    // 1. If Staff, always Live
     if (!isAdmin) return 'live';
-    
-    // 2. If Admin, check LocalStorage preference
     const savedPref = localStorage.getItem('tm_datasource_pref');
     if (savedPref === 'live' || savedPref === 'mock') {
         return savedPref;
     }
-    
-    // 3. Default to Mock for Admin if no preference
     return 'mock';
   });
 
@@ -37,7 +32,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   // Auto Refresh State
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isAutoRefresh, setIsAutoRefresh] = useState(true);
-  const REFRESH_INTERVAL = 10000; // 10 Seconds for faster feedback
+  const REFRESH_INTERVAL = 10000; 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
   // Payload Tester State
@@ -63,24 +58,21 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [userFormError, setUserFormError] = useState('');
 
   // Constants
-  const ITEMS_PER_PAGE = 10;
+  const ITEMS_PER_PAGE = 20;
   const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://your-domain.com';
 
-  // Enforce Live Mode for non-admins (Safety check)
   useEffect(() => {
     if (!isAdmin) {
       setDataSource('live');
     }
   }, [isAdmin]);
 
-  // Persist DataSource Preference for Admin
   useEffect(() => {
     if (isAdmin) {
         localStorage.setItem('tm_datasource_pref', dataSource);
     }
   }, [dataSource, isAdmin]);
 
-  // Independent Database Status Check
   const checkDbStatus = useCallback(async () => {
       try {
            const res = await fetch('/api/webhook/truemoney');
@@ -99,11 +91,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       }
   }, []);
 
-  // Check DB status on mount and periodically if admin
   useEffect(() => {
       if (isAdmin) {
           checkDbStatus();
-          const statusInterval = setInterval(checkDbStatus, 30000); // Check every 30s
+          const statusInterval = setInterval(checkDbStatus, 30000); 
           return () => clearInterval(statusInterval);
       }
   }, [isAdmin, checkDbStatus]);
@@ -111,48 +102,43 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const loadData = useCallback(async (isBackgroundRefresh = false) => {
     if (!isBackgroundRefresh) setLoading(true);
     try {
+      let data: Transaction[] = [];
       if (dataSource === 'mock') {
-          // Fetch from LocalStorage Mock
-          const { data } = await fetchTransactions(currentPage, ITEMS_PER_PAGE);
-          setTransactions(data);
+          // Note: Mock service simulates paging, but for this new UI we'll just get 'enough' data 
+          // or we can adjust mock service. Here we rely on the service returning a list.
+          // For simplicity in this UI overhaul, let's fetch a larger chunk from Mock to handle client-side paging seamlessly for demo.
+          const res = await fetchTransactions(1, 100); 
+          data = res.data;
       } else {
-          // Fetch from Real Server API
-          const data = await fetchLiveTransactions();
-          // Sort client-side for simple display
-          data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          
-          // Client-Side Caching Logic
+          data = await fetchLiveTransactions();
           const cachedKey = 'tm_cached_transactions';
           const cached = localStorage.getItem(cachedKey);
-          let mergedData = data;
           
           if (cached) {
               const cachedData: Transaction[] = JSON.parse(cached);
-              // Merge: Create a Map by ID
               const dataMap = new Map();
-              cachedData.forEach(item => dataMap.set(item.id, item)); // Old data
-              data.forEach(item => dataMap.set(item.id, item)); // New data overwrites old
-              
-              mergedData = Array.from(dataMap.values());
-              mergedData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+              cachedData.forEach(item => dataMap.set(item.id, item));
+              data.forEach(item => dataMap.set(item.id, item));
+              data = Array.from(dataMap.values());
           }
           
-          // Update Cache
-          if (mergedData.length > 0) {
-              localStorage.setItem(cachedKey, JSON.stringify(mergedData.slice(0, 100))); // Cache max 100
+          if (data.length > 0) {
+              localStorage.setItem(cachedKey, JSON.stringify(data.slice(0, 100)));
           }
-          
-          setTransactions(mergedData);
       }
+
+      // Sort Date Descending
+      data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+      setTransactions(data);
       setLastUpdated(new Date());
     } catch (err) {
       console.error(err);
     } finally {
       if (!isBackgroundRefresh) setLoading(false);
     }
-  }, [currentPage, dataSource]);
+  }, [dataSource]);
 
-  // Load Users & Secret
   const loadUsers = useCallback(async () => {
       try {
           if (dataSource === 'live') {
@@ -166,15 +152,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       }
   }, [dataSource]);
 
-  // Reload users when datasource changes
   useEffect(() => {
       if (isAdmin && activeTab === 'users') loadUsers();
   }, [dataSource, isAdmin, loadUsers, activeTab]);
 
-  // Initial Load & Auto Refresh Logic
   useEffect(() => {
     loadData();
-    // Load secret
     const storedSecret = localStorage.getItem('tm_verification_secret');
     if (storedSecret) {
         setVerificationSecret(storedSecret);
@@ -183,7 +166,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
     if (isAutoRefresh) {
       timerRef.current = setInterval(() => {
-        loadData(true); // Background refresh without full loading spinner
+        loadData(true);
       }, REFRESH_INTERVAL);
     }
 
@@ -192,9 +175,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     };
   }, [loadData, isAutoRefresh]);
 
-  const toggleAutoRefresh = () => {
-    setIsAutoRefresh(prev => !prev);
-  };
+  const toggleAutoRefresh = () => setIsAutoRefresh(prev => !prev);
 
   const handleManualRefresh = () => {
     loadData();
@@ -208,7 +189,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
               clearAllData();
           } else {
               await clearLiveTransactions();
-              localStorage.removeItem('tm_cached_transactions'); // Clear Client Cache
+              localStorage.removeItem('tm_cached_transactions');
               loadData();
           }
       }
@@ -219,13 +200,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     const prefix = `08${Math.floor(Math.random() * 10)}`; 
     const middle = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     const last = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-    const randomSender = `${prefix}-${middle}-${last}`;
+    const randomSender = `${prefix}${middle}${last}`; // Send raw, format later
     
     if (dataSource === 'mock') {
         simulateIncomingWebhook(randomAmount, randomSender);
-        refreshTable();
+        loadData();
     } else {
-        // Trigger via API (Send Satang)
         await triggerLiveWebhook({
             amount: randomAmount * 100, 
             sender_mobile: randomSender,
@@ -247,8 +227,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
     try {
       let data: any = null;
-
-      // Check if input is JWT
       if (trimmedInput.split('.').length === 3) {
         try {
             const base64Url = trimmedInput.split('.')[1];
@@ -275,7 +253,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           return;
       }
 
-      // If Live Mode, send directly to API Endpoint to test full flow
       if (dataSource === 'live') {
            await triggerLiveWebhook(data);
            setJsonInput('');
@@ -283,7 +260,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
            return;
       }
 
-      // If Mock Mode, process locally
       const amount = Number(data.amount || data.txn_amount || 0);
       const sender = data.sender_mobile || data.payer_mobile || 'Unknown';
       const message = data.message || 'Webhook Payload';
@@ -302,20 +278,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       }
 
       simulateIncomingWebhook(amount, sender, message, date);
-      setJsonInput(''); // Clear input on success
-      refreshTable();
+      setJsonInput('');
+      loadData();
 
     } catch (e) {
       console.error(e);
       setJsonError('เกิดข้อผิดพลาดในการประมวลผล');
-    }
-  };
-
-  const refreshTable = () => {
-    if (currentPage === 1) {
-      loadData();
-    } else {
-      setCurrentPage(1);
     }
   };
 
@@ -344,7 +312,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       setIsVerified(true);
   };
 
-  // --- Mock Service Handlers ---
   const handleCheckBalance = () => {
       alert(`ยอดเงินคงเหลือในกระเป๋า (จำลอง): ${Math.floor(Math.random() * 100000).toLocaleString()} THB`);
   };
@@ -355,7 +322,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       setActiveTab('dashboard');
   };
 
-  // --- User Management Handlers ---
   const openUserModal = (userToEdit?: User) => {
       setUserFormError('');
       if (userToEdit) {
@@ -373,21 +339,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       setUserFormError('');
       try {
           if (dataSource === 'live') {
-              // Call API
-               if (editingUser) {
-                  await updateUserApi(editingUser.id, userForm);
-              } else {
-                  await addUserApi(userForm);
-              }
+               if (editingUser) await updateUserApi(editingUser.id, userForm);
+               else await addUserApi(userForm);
           } else {
-              // Call Mock
-              if (editingUser) {
-                  updateUser(editingUser.id, userForm);
-              } else {
-                  addUser(userForm);
-              }
+              if (editingUser) updateUser(editingUser.id, userForm);
+              else addUser(userForm);
           }
-          
           loadUsers();
           setIsUserModalOpen(false);
       } catch (err: any) {
@@ -398,11 +355,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const handleDeleteUser = async (id: string) => {
       if (confirm('ต้องการลบผู้ใช้งานนี้ใช่หรือไม่?')) {
           try {
-              if (dataSource === 'live') {
-                  await deleteUserApi(id);
-              } else {
-                  deleteUser(id);
-              }
+              if (dataSource === 'live') await deleteUserApi(id);
+              else deleteUser(id);
               loadUsers();
           } catch (err: any) {
               alert(err.message);
@@ -410,15 +364,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       }
   };
 
-
-  // Format date for Thai locale
+  // Utilities
   const formatDate = (isoString: string) => {
     try {
         const date = new Date(isoString);
         return date.toLocaleDateString('th-TH', {
         day: '2-digit',
         month: '2-digit',
-        year: 'numeric',
+        year: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
@@ -428,460 +381,427 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     }
   };
 
-  const backendCodeString = `
-// นี่คือโค้ดที่รันอยู่ใน api/index.js (Vercel Serverless Function)
-import express from 'express';
-import cors from 'cors';
-import jwt from 'jsonwebtoken';
-import mongoose from 'mongoose';
+  const formatPhoneNumber = (phoneNumber: string) => {
+      if (!phoneNumber) return '-';
+      const cleaned = phoneNumber.replace(/\D/g, '');
+      const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
+      if (match) {
+        return `${match[1]}-${match[2]}-${match[3]}`;
+      }
+      return phoneNumber;
+  };
 
-const app = express();
-// ... (Middleware & DB Connection) ...
+  // Pagination Logic
+  const totalPages = Math.ceil(transactions.length / ITEMS_PER_PAGE);
+  const displayedTransactions = transactions.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
-// Login Route
-app.post('/api/login', async (req, res) => {
-   // ... check MongoDB ...
-});
-
-// Webhook Route
-app.post('/api/webhook/truemoney', (req, res) => {
-    // ... logic to save transaction to MongoDB ...
-});
-
-export default app;
-  `.trim();
+  const backendCodeString = `// Backend Logic (api/index.js)...`.trim();
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 mt-8 font-sans pb-20">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 font-sans pb-24 text-slate-200">
       
-      {/* Title / Breadcrumb */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-        <h1 className="text-xl font-medium text-white tracking-wide">
-          <span className="font-bold text-orange-500">TrueMoney</span>
-          <span className="mx-3 text-gray-500">/</span>
-          <span className="text-gray-300">Transaction Monitor</span>
-        </h1>
+      {/* Header / Title Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+            <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                <Wallet className="text-orange-500" />
+                <span>TrueMoney <span className="text-slate-500 font-light">/ Webhook Dashboard</span></span>
+            </h1>
+            <p className="text-sm text-slate-400 mt-1">Monitor your incoming transactions in real-time.</p>
+        </div>
 
-        {/* Tab Switcher - Only visible to Admin */}
+        {/* Navigation Tabs (Glass Style) */}
         {isAdmin && (
-            <div className="flex bg-[#1e293b] p-1 rounded-lg border border-gray-700">
-                <button 
-                    onClick={() => setActiveTab('dashboard')}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-all ${activeTab === 'dashboard' ? 'bg-orange-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
-                >
-                    <LayoutDashboard size={16} /> Dashboard
-                </button>
-                <button 
-                    onClick={() => setActiveTab('services')}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-all ${activeTab === 'services' ? 'bg-orange-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
-                >
-                    <LayoutGrid size={16} /> Services
-                </button>
-                <button 
-                    onClick={() => setActiveTab('users')}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-all ${activeTab === 'users' ? 'bg-orange-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
-                >
-                    <Users size={16} /> Users
-                </button>
-                <button 
-                    onClick={() => setActiveTab('code')}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-all ${activeTab === 'code' ? 'bg-orange-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
-                >
-                    <Code size={16} /> Backend Code
-                </button>
+            <div className="flex bg-slate-800/50 p-1 rounded-xl border border-slate-700/50 backdrop-blur-md">
+                {[
+                    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+                    { id: 'services', label: 'Services', icon: LayoutGrid },
+                    { id: 'users', label: 'Users', icon: Users },
+                    { id: 'code', label: 'API Code', icon: Code },
+                ].map((tab) => (
+                    <button 
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id as any)}
+                        className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                            activeTab === tab.id 
+                            ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' 
+                            : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                        }`}
+                    >
+                        <tab.icon size={16} /> <span className="hidden sm:inline">{tab.label}</span>
+                    </button>
+                ))}
             </div>
         )}
       </div>
 
       {activeTab === 'dashboard' && (
-        <>
-            {/* Controls */}
-            <div className="mb-6 bg-[#1a2234] border border-gray-700 p-4 rounded-lg shadow-lg">
-                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                    
-                    {/* Source Toggle */}
-                    <div className="flex items-center gap-3">
-                         <span className="text-xs text-gray-400 uppercase font-bold tracking-wider">Data Source:</span>
-                         <div className="flex bg-[#0f172a] p-1 rounded border border-gray-600">
-                             {isAdmin ? (
-                                <>
-                                    <button 
-                                        onClick={() => { setDataSource('mock'); setCurrentPage(1); }}
-                                        className={`flex items-center gap-2 px-3 py-1.5 text-xs rounded transition-all ${dataSource === 'mock' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
-                                    >
-                                        <Database size={12} /> Local Mock
-                                    </button>
-                                    <button 
-                                        onClick={() => { setDataSource('live'); setCurrentPage(1); }}
-                                        className={`flex items-center gap-2 px-3 py-1.5 text-xs rounded transition-all ${dataSource === 'live' ? 'bg-green-600 text-white' : 'text-gray-400 hover:text-white'}`}
-                                    >
-                                        <Globe size={12} /> Live Server (API)
-                                    </button>
-                                </>
-                             ) : (
-                                 <div className="flex items-center gap-2 px-3 py-1.5 text-xs rounded bg-green-900/40 text-green-400 border border-green-800/50">
-                                     <Globe size={12} /> Live Server Active
-                                 </div>
-                             )}
-                         </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-4 text-xs">
-                        <div className="hidden md:flex items-center gap-1 text-gray-400">
-                            <Clock size={12} /> 
-                            <span>อัปเดต: {lastUpdated.toLocaleTimeString('th-TH')}</span>
-                        </div>
-                        <button 
-                            onClick={toggleAutoRefresh}
-                            className={`flex items-center gap-1 px-2 py-1 rounded border transition-colors ${isAutoRefresh ? 'bg-green-900/30 border-green-700 text-green-400' : 'bg-gray-800 border-gray-600 text-gray-400'}`}
-                        >
-                            <Power size={10} /> {isAutoRefresh ? 'Auto' : 'Off'}
-                        </button>
-                        <button 
-                            onClick={handleManualRefresh}
-                            className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors"
-                            disabled={loading}
-                        >
-                            <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> รีเฟรช
-                        </button>
-                        {isAdmin && (
-                             <button 
-                                onClick={handleClearData}
-                                className="flex items-center gap-1 text-red-400 hover:text-red-300 transition-colors ml-2"
-                            >
-                                <Trash2 size={12} /> ล้างค่า
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Table */}
-            <div className="mb-6">
-                <div className="flex gap-[2px] md:gap-1 mb-[1px]">
-                <div className="flex-1 border border-slate-600 bg-[#0f172a] py-3 text-center text-white font-bold text-sm md:text-base">
-                    โอนจาก
-                </div>
-                <div className="flex-1 border border-slate-600 bg-[#0f172a] py-3 text-center text-white font-bold text-sm md:text-base">
-                    จำนวนเงิน
-                </div>
-                <div className="flex-[1.5] border border-slate-600 bg-[#0f172a] py-3 text-center text-white font-bold text-sm md:text-base">
-                    วันที่โอน
-                </div>
-                <div className="flex-1 border border-slate-600 bg-[#0f172a] py-3 text-center text-white font-bold text-sm md:text-base">
-                    ข้อความ
-                </div>
-                </div>
-
-                <div className="min-h-[300px] bg-[#1a2234]/30 border-t border-slate-700 relative">
-                {loading && !isAutoRefresh ? (
-                    <div className="absolute inset-0 flex items-center justify-center bg-[#1a2234]/50 z-10">
-                    <RefreshCw className="animate-spin text-orange-500" />
-                    </div>
-                ) : null}
+        <div className="space-y-6">
+            
+            {/* Control Bar */}
+            <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-4 backdrop-blur-sm shadow-xl flex flex-col md:flex-row justify-between items-center gap-4">
                 
-                {transactions.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-48 text-gray-500">
-                        <span className="mb-2">ไม่พบรายการ ({dataSource === 'mock' ? 'Mock Data' : 'Live Server'})</span>
-                        {dataSource === 'live' && (
-                            <span className="text-xs text-gray-600">
-                                {isAdmin ? 'ตรวจสอบว่า Server ทำงานอยู่ หรือลองกดปุ่ม "จำลองเงินเข้า"' : 'ยังไม่มีรายการโอนเงินใหม่เข้ามา'}
-                            </span>
-                        )}
+                {/* Data Source Toggle */}
+                <div className="flex items-center gap-3">
+                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Source</span>
+                     <div className="flex bg-slate-900/50 p-1 rounded-lg border border-slate-700/50">
+                         {isAdmin ? (
+                            <>
+                                <button 
+                                    onClick={() => { setDataSource('mock'); setCurrentPage(1); }}
+                                    className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${dataSource === 'mock' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    <Database size={12} /> Mock
+                                </button>
+                                <button 
+                                    onClick={() => { setDataSource('live'); setCurrentPage(1); }}
+                                    className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${dataSource === 'live' ? 'bg-green-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    <Globe size={12} /> Live API
+                                </button>
+                            </>
+                         ) : (
+                             <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md bg-green-500/10 text-green-400 border border-green-500/20">
+                                 <Globe size={12} /> Live API Active
+                             </div>
+                         )}
+                     </div>
+                </div>
+
+                {/* Status & Actions */}
+                <div className="flex items-center gap-3 text-sm">
+                    <div className="hidden lg:flex items-center gap-2 text-slate-400 bg-slate-900/30 px-3 py-1.5 rounded-lg border border-slate-800">
+                        <Clock size={14} className="text-orange-500"/> 
+                        <span className="text-xs font-mono">{lastUpdated.toLocaleTimeString('th-TH')}</span>
                     </div>
-                ) : (
-                    <div className="flex flex-col gap-[1px]">
-                    {transactions.map((tx) => (
-                        <div key={tx.id} className="flex gap-[2px] md:gap-1 group animate-in fade-in duration-300">
-                            <div className="flex-1 bg-[#1e293b] border-x border-slate-700/50 p-3 text-center text-gray-300 text-sm group-hover:bg-[#2d3748] transition-colors flex items-center justify-center">
-                            {tx.sender}
-                            </div>
-                            <div className="flex-1 bg-[#1e293b] border-x border-slate-700/50 p-3 text-center text-green-400 font-mono text-sm group-hover:bg-[#2d3748] transition-colors flex items-center justify-center font-bold">
-                            {tx.amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
-                            </div>
-                            <div className="flex-[1.5] bg-[#1e293b] border-x border-slate-700/50 p-3 text-center text-gray-400 text-xs md:text-sm group-hover:bg-[#2d3748] transition-colors flex items-center justify-center">
-                            {formatDate(tx.date)}
-                            </div>
-                            <div className="flex-1 bg-[#1e293b] border-x border-slate-700/50 p-3 text-center text-gray-300 text-sm group-hover:bg-[#2d3748] transition-colors flex items-center justify-center">
-                            {tx.message}
-                            </div>
-                        </div>
-                    ))}
-                    </div>
-                )}
+
+                    <button 
+                        onClick={toggleAutoRefresh}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-xs font-medium ${isAutoRefresh ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}
+                    >
+                        <Power size={12} /> {isAutoRefresh ? 'Auto On' : 'Auto Off'}
+                    </button>
+
+                    <button 
+                        onClick={handleManualRefresh}
+                        disabled={loading}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition-all text-xs font-medium"
+                    >
+                        <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> Refresh
+                    </button>
+
+                    {isAdmin && (
+                        <button 
+                            onClick={handleClearData}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/30 transition-all text-xs font-medium"
+                        >
+                            <Trash2 size={12} /> Clear
+                        </button>
+                    )}
                 </div>
             </div>
 
-            {/* Pagination Buttons */}
-            {dataSource === 'mock' && isAdmin && (
-                <div className="flex justify-between items-center mb-8">
-                    <button 
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1 || loading}
-                    className="bg-[#334155] hover:bg-[#475569] text-gray-300 px-4 py-2 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                    ก่อนหน้า
-                    </button>
-                    <div className="text-gray-500 text-xs">Page {currentPage}</div>
-                    <button 
-                    onClick={() => setCurrentPage(prev => prev + 1)}
-                    disabled={loading || transactions.length < ITEMS_PER_PAGE}
-                    className="bg-[#334155] hover:bg-[#475569] text-white px-6 py-2 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                    ถัดไป
-                    </button>
+            {/* Main Table Card */}
+            <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden backdrop-blur-sm shadow-xl">
+                {/* Table Header */}
+                <div className="grid grid-cols-12 gap-4 p-4 bg-slate-900/50 border-b border-slate-700/50 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    <div className="col-span-3">Sender</div>
+                    <div className="col-span-3 text-right">Amount</div>
+                    <div className="col-span-3 text-center">Date</div>
+                    <div className="col-span-3">Message</div>
                 </div>
-            )}
 
-            {/* Controls & Tools Section - ONLY FOR ADMIN */}
-            {isAdmin && (
-                <div className="border-t border-gray-700 pt-6 mt-10 grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-5">
-                    
-                    {/* Left Column: Simulation & Connection */}
-                    <div className="space-y-4">
-                        {/* Simulation */}
-                        <div className="bg-[#1e293b] p-4 rounded border border-gray-700">
-                        <h3 className="text-gray-400 text-xs uppercase font-bold mb-3">
-                            จำลองยอดเงินเข้า ({dataSource === 'live' ? 'ยิงเข้า API จริง' : 'บันทึกลง Mock Data'})
-                        </h3>
-                        <div className="flex gap-2">
-                            <button 
-                                onClick={handleSimulateWebhook}
-                                className="flex-1 flex items-center gap-2 bg-gradient-to-r from-orange-700 to-orange-600 hover:from-orange-600 hover:to-orange-500 text-white text-xs px-3 py-2 rounded transition-colors justify-center"
-                            >
-                                <Play size={14} /> จำลองเงินเข้า (Random)
-                            </button>
+                {/* Table Body */}
+                <div className="relative min-h-[400px]">
+                    {loading && !isAutoRefresh && (
+                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px]">
+                            <RefreshCw className="animate-spin text-orange-500" size={32} />
                         </div>
-                        </div>
+                    )}
 
-                        {/* Connection Info */}
-                        <div className="bg-[#1e293b] p-4 rounded border border-gray-700 relative overflow-hidden">
-                        {dataSource === 'mock' && (
-                            <div className="absolute top-0 right-0 bg-yellow-600 text-white text-[10px] px-2 py-0.5 rounded-bl">Mock Mode</div>
-                        )}
-                        {dataSource === 'live' && (
-                            <div className="absolute top-0 right-0 bg-green-600 text-white text-[10px] px-2 py-0.5 rounded-bl">Live Mode</div>
-                        )}
-
-                        <h3 className="text-gray-400 text-xs uppercase font-bold mb-3 flex items-center gap-2">
-                            <Server size={14} /> ข้อมูลสำหรับติดตั้ง (Setup URL)
-                        </h3>
-                        <div className="space-y-2">
-                            <div className="flex justify-between items-center text-xs text-gray-400">
-                                <span>Webhook Endpoint URL:</span>
-                                <span>Database Status: <span className={`font-bold ${dbStatus.includes('Connected') ? 'text-green-400' : 'text-red-400'}`}>{dbStatus}</span></span>
+                    {displayedTransactions.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-64 text-slate-500">
+                            <div className="bg-slate-800/50 p-4 rounded-full mb-3">
+                                <History size={32} />
                             </div>
-                            <div className="flex gap-2">
-                            <code className={`flex-1 text-xs p-2 rounded border font-mono overflow-hidden whitespace-nowrap text-ellipsis ${dataSource === 'live' ? 'bg-green-900/20 text-green-400 border-green-800' : 'bg-[#0f172a] text-gray-400 border-gray-600'}`}>
-                                {dataSource === 'live' ? `${currentOrigin}/api/webhook/truemoney` : 'เปลี่ยนเป็น Live Mode เพื่อดู URL จริง'}
-                            </code>
-                            <button 
-                                onClick={handleCopyEndpoint}
-                                disabled={dataSource === 'mock'}
-                                className="bg-[#334155] hover:bg-[#475569] text-white p-2 rounded transition-colors disabled:opacity-50"
-                                title="Copy URL"
-                            >
-                                {copied ? <Check size={14} className="text-green-400"/> : <Clipboard size={14} />}
-                            </button>
-                            </div>
-                            <p className="text-[10px] text-gray-500 mt-2">
-                            {dataSource === 'live' 
-                                ? '* URL นี้คือ URL ของ Vercel จริงของคุณ นำไปใส่ในแอป TrueMoney ได้เลย'
-                                : '* กรุณาเปลี่ยนโหมดเป็น "Live Server" เพื่อดู URL สำหรับนำไปใช้งานจริง'}
-                            </p>
+                            <span className="font-medium">No transactions found</span>
+                            <span className="text-xs mt-1">Waiting for webhook events...</span>
                         </div>
-
-                         {/* NEW SECTION: Verification Secret */}
-                            <div className="mt-4 pt-4 border-t border-gray-700/50">
-                                <h3 className="text-gray-400 text-xs uppercase font-bold mb-2 flex items-center gap-2">
-                                    <KeyRound size={14} /> Verification Secret
-                                </h3>
-                                <div className="text-[10px] text-gray-500 mb-2">
-                                    รหัสที่ได้จากแอป TrueMoney หลังจากกรอก URL (เช่น 902b...)
+                    ) : (
+                        <div className="divide-y divide-slate-700/30">
+                            {displayedTransactions.map((tx) => (
+                                <div key={tx.id} className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-white/5 transition-colors group">
+                                    <div className="col-span-3 flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-300 font-bold text-xs">
+                                            {tx.sender.slice(0, 2)}
+                                        </div>
+                                        <span className="text-sm font-medium text-slate-200 font-mono tracking-wide">
+                                            {formatPhoneNumber(tx.sender)}
+                                        </span>
+                                    </div>
+                                    <div className="col-span-3 text-right">
+                                        <span className="inline-block px-2 py-1 rounded bg-green-500/10 text-green-400 border border-green-500/20 text-sm font-bold font-mono">
+                                            +{tx.amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                    <div className="col-span-3 text-center text-xs text-slate-400 font-mono">
+                                        {formatDate(tx.date)}
+                                    </div>
+                                    <div className="col-span-3 text-sm text-slate-300 truncate opacity-80 group-hover:opacity-100">
+                                        {tx.message}
+                                    </div>
                                 </div>
-                                <div className="flex gap-2">
-                                    <input 
-                                        type="text" 
-                                        value={verificationSecret}
-                                        onChange={(e) => { setVerificationSecret(e.target.value); setIsVerified(false); }}
-                                        placeholder="วางรหัส Verification Secret ที่นี่"
-                                        className={`flex-1 bg-[#0f172a] border text-xs px-3 py-2 rounded focus:outline-none focus:border-green-500 font-mono ${isVerified ? 'border-green-500/50 text-green-400' : 'border-gray-600 text-gray-300'}`}
-                                    />
-                                    <button 
-                                        onClick={handleSaveSecret}
-                                        className={`px-3 py-2 rounded text-xs transition-colors flex items-center gap-1 ${isVerified ? 'bg-green-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}
-                                    >
-                                        {isVerified ? <Check size={14} /> : 'Save'}
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Pagination Footer */}
+                <div className="p-4 border-t border-slate-700/50 bg-slate-900/30 flex justify-between items-center">
+                    <div className="text-xs text-slate-500">
+                        Showing {displayedTransactions.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} to {Math.min(currentPage * ITEMS_PER_PAGE, transactions.length)} of {transactions.length} entries
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1 || loading}
+                            className="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                            <ChevronLeft size={16} />
+                        </button>
+                        
+                        <div className="px-4 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-mono text-slate-300">
+                            Page {currentPage} / {Math.max(totalPages, 1)}
+                        </div>
+
+                        <button 
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                            disabled={currentPage >= totalPages || loading}
+                            className="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                            <ChevronRight size={16} />
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Admin Tools Section */}
+            {isAdmin && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+                    
+                    {/* Left Panel: Configuration */}
+                    <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-6 backdrop-blur-sm">
+                        <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <Server size={16} className="text-blue-500" /> Configuration & Simulation
+                        </h3>
+
+                        <div className="space-y-4">
+                            {/* Simulator */}
+                            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
+                                <label className="text-xs text-slate-500 font-bold uppercase mb-2 block">Transaction Simulator</label>
+                                <button 
+                                    onClick={handleSimulateWebhook}
+                                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white text-sm font-medium py-2.5 rounded-lg shadow-lg shadow-orange-900/20 transition-all active:scale-95"
+                                >
+                                    <Play size={16} fill="currentColor" /> Simulate Incoming Money (Random)
+                                </button>
+                                <p className="text-[10px] text-slate-500 mt-2 text-center">
+                                    Generates a random transaction and sends it to the {dataSource === 'live' ? 'Real API' : 'Mock Store'}.
+                                </p>
+                            </div>
+
+                            {/* Setup Info */}
+                            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
+                                <div className="flex justify-between items-center mb-2">
+                                    <label className="text-xs text-slate-500 font-bold uppercase">Setup Information</label>
+                                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded ${dbStatus.includes('Connected') ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+                                        {dbStatus}
+                                    </span>
+                                </div>
+                                
+                                <div className="flex gap-2 mb-3">
+                                    <div className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-400 overflow-hidden whitespace-nowrap text-ellipsis">
+                                        {dataSource === 'live' ? `${currentOrigin}/api/webhook/truemoney` : 'Switch to Live Mode to see URL'}
+                                    </div>
+                                    <button onClick={handleCopyEndpoint} className="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2 rounded-lg border border-slate-700 transition-colors">
+                                        {copied ? <Check size={16} className="text-green-500"/> : <Clipboard size={16}/>}
                                     </button>
                                 </div>
-                                {isVerified && (
-                                    <div className="mt-2 flex items-center gap-2 text-[10px] text-green-400 bg-green-900/20 p-2 rounded border border-green-900/50">
-                                        <Check size={12} /> เชื่อมต่อกับ TrueMoney เรียบร้อยแล้ว (Verified)
-                                    </div>
-                                )}
-                            </div>
 
+                                <div className="pt-3 border-t border-slate-800">
+                                    <label className="text-[10px] text-slate-500 font-bold uppercase mb-1 block">Verification Secret</label>
+                                    <div className="flex gap-2">
+                                        <input 
+                                            type="text" 
+                                            value={verificationSecret}
+                                            onChange={(e) => { setVerificationSecret(e.target.value); setIsVerified(false); }}
+                                            placeholder="Paste code from TrueMoney app (902b...)"
+                                            className="flex-1 bg-slate-950 border border-slate-800 text-xs text-slate-300 px-3 py-2 rounded-lg focus:outline-none focus:border-green-500/50 transition-colors font-mono"
+                                        />
+                                        <button 
+                                            onClick={handleSaveSecret}
+                                            className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 ${isVerified ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'bg-slate-700 hover:bg-slate-600 text-white'}`}
+                                        >
+                                            {isVerified ? <Check size={14} /> : 'Save'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Right Column: Payload Tester & AI */}
-                    <div className="space-y-4">
-                        {/* Payload Tester */}
-                        <div className="bg-[#1e293b] p-4 rounded border border-gray-700">
-                        <div className="flex justify-between items-center mb-3">
-                            <h3 className="text-gray-400 text-xs uppercase font-bold flex items-center gap-2">
-                            <Code size={14} /> ทดสอบ Token / Payload
-                            </h3>
-                            <span className="text-[10px] bg-blue-900/50 text-blue-300 px-2 py-0.5 rounded border border-blue-800">
-                            {dataSource === 'live' ? 'ส่งเข้า Server จริง' : 'ทดสอบใน Browser'}
-                            </span>
-                        </div>
-                        <div className="space-y-2">
-                            <textarea 
-                                value={jsonInput}
-                                onChange={(e) => setJsonInput(e.target.value)}
-                                placeholder={'วาง Token (eyJ...) หรือ JSON ที่นี่'}
-                                className="w-full bg-[#0f172a] border border-gray-600 text-gray-300 text-xs p-2 rounded h-24 focus:border-orange-500 focus:outline-none font-mono resize-none"
-                            />
-                            {jsonError && <p className="text-red-400 text-xs bg-red-900/20 p-1 rounded">{jsonError}</p>}
-                            <button 
-                            onClick={handlePayloadTest}
-                            className="flex items-center gap-2 bg-slate-600 hover:bg-slate-500 text-white text-xs px-3 py-2 rounded transition-colors w-full justify-center"
-                            >
-                            <Play size={14} /> ยิงข้อมูล ({dataSource === 'live' ? 'POST /api/webhook' : 'Local Function'})
-                            </button>
-                        </div>
-                        </div>
+                    {/* Right Panel: Tester & AI */}
+                    <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-6 backdrop-blur-sm">
+                        <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <Code size={16} className="text-purple-500" /> Advanced Tools
+                        </h3>
 
-                        {/* AI Summary */}
-                        <div className="bg-[#1e293b] p-4 rounded border border-gray-700">
-                        <div className="flex justify-between items-center mb-2">
-                            <h3 className="text-gray-400 text-xs uppercase font-bold flex items-center gap-2">
-                            <Sparkles size={12} className="text-purple-400"/> AI Analysis
-                            </h3>
-                            <button 
-                            onClick={handleGeminiAnalysis}
-                            disabled={analyzing}
-                            className="text-xs text-purple-400 hover:text-purple-300 underline disabled:opacity-50"
-                            >
-                            {analyzing ? 'กำลังวิเคราะห์...' : 'วิเคราะห์ข้อมูล'}
-                            </button>
-                        </div>
-                        
-                        <div className="bg-[#0f172a] p-3 rounded min-h-[60px] text-xs text-gray-300 border border-gray-800 leading-relaxed">
-                            {analysis ? analysis : "กดปุ่มเพื่อวิเคราะห์พฤติกรรมการโอน"}
-                        </div>
+                        <div className="space-y-4">
+                            {/* JSON Tester */}
+                            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
+                                <div className="flex justify-between items-center mb-2">
+                                    <label className="text-xs text-slate-500 font-bold uppercase">Payload / Token Tester</label>
+                                </div>
+                                <textarea 
+                                    value={jsonInput}
+                                    onChange={(e) => setJsonInput(e.target.value)}
+                                    placeholder="Paste JSON or JWT Token here..."
+                                    className="w-full bg-slate-950 border border-slate-800 text-slate-300 text-xs p-3 rounded-lg h-24 focus:border-orange-500/50 focus:outline-none font-mono resize-none mb-2"
+                                />
+                                {jsonError && <p className="text-red-400 text-xs mb-2 bg-red-900/20 p-2 rounded border border-red-900/30">{jsonError}</p>}
+                                <button 
+                                    onClick={handlePayloadTest}
+                                    className="w-full flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium py-2 rounded-lg transition-colors"
+                                >
+                                    <Play size={14} /> Send Payload
+                                </button>
+                            </div>
+
+                            {/* AI Analysis */}
+                            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
+                                <div className="flex justify-between items-center mb-2">
+                                    <label className="text-xs text-slate-500 font-bold uppercase flex items-center gap-1">
+                                        <Sparkles size={12} className="text-purple-400" /> Gemini AI Analysis
+                                    </label>
+                                    <button 
+                                        onClick={handleGeminiAnalysis}
+                                        disabled={analyzing}
+                                        className="text-[10px] text-purple-400 hover:text-purple-300 underline disabled:opacity-50"
+                                    >
+                                        {analyzing ? 'Thinking...' : 'Analyze Now'}
+                                    </button>
+                                </div>
+                                <div className="bg-slate-950 p-3 rounded-lg min-h-[60px] text-xs text-slate-300 border border-slate-800 leading-relaxed italic">
+                                    {analysis || "AI analysis of your transactions will appear here..."}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                 </div>
             )}
-        </>
+        </div>
       )}
 
-      {/* Services Tab - Mimicking App Screenshot */}
+      {/* Services Tab */}
       {activeTab === 'services' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in">
-            {/* Card 1: Webhook (Go to Dashboard) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in zoom-in-95 duration-300">
             <div 
-                className="bg-[#1e293b] p-6 rounded-xl border border-gray-700 flex flex-col items-center text-center hover:border-orange-500 transition-colors cursor-pointer group"
+                className="bg-slate-800/40 p-6 rounded-2xl border border-slate-700/50 flex flex-col items-center text-center hover:border-orange-500/50 hover:bg-slate-800/60 transition-all cursor-pointer group backdrop-blur-sm"
                 onClick={() => setActiveTab('dashboard')}
             >
-                <div className="bg-orange-500/20 p-4 rounded-full mb-4 text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-all">
-                    <BellRing size={32} />
+                <div className="bg-orange-500/10 p-5 rounded-full mb-4 text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-all shadow-lg shadow-orange-900/20">
+                    <BellRing size={36} />
                 </div>
-                <h3 className="text-white font-semibold mb-2">แจ้งรับเงิน/เติมเงิน</h3>
-                <p className="text-xs text-gray-400">ระบบ Webhook แจ้งเตือนยอดเงินเข้า (P2P)</p>
-                <span className="mt-4 text-xs bg-green-900/50 text-green-300 px-2 py-1 rounded">Active</span>
+                <h3 className="text-white font-bold mb-2">Incoming Webhook</h3>
+                <p className="text-sm text-slate-400 mb-4">Real-time P2P transaction alerts</p>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-green-500/20 text-green-400 px-2 py-1 rounded-full border border-green-500/20">Active</span>
             </div>
             
-            {/* Card 2: Transaction Notify (Mock) */}
-            <div className="bg-[#1e293b] p-6 rounded-xl border border-gray-700 flex flex-col items-center text-center hover:border-blue-500 transition-colors cursor-pointer group">
-                <div className="bg-blue-500/20 p-4 rounded-full mb-4 text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all">
-                    <Smartphone size={32} />
+            <div className="bg-slate-800/40 p-6 rounded-2xl border border-slate-700/50 flex flex-col items-center text-center opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all cursor-pointer">
+                <div className="bg-blue-500/10 p-5 rounded-full mb-4 text-blue-500">
+                    <Smartphone size={36} />
                 </div>
-                <h3 className="text-white font-semibold mb-2">แจ้งการทำรายการ</h3>
-                <p className="text-xs text-gray-400">แจ้งเตือนเมื่อมีการโอนออกหรือจ่ายบิล</p>
-                <span className="mt-4 text-xs bg-gray-700 text-gray-400 px-2 py-1 rounded">Coming Soon</span>
+                <h3 className="text-white font-bold mb-2">Outgoing Notify</h3>
+                <p className="text-sm text-slate-400 mb-4">Expense & Bill Payment alerts</p>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-700 text-slate-400 px-2 py-1 rounded-full border border-slate-600">Soon</span>
             </div>
 
-            {/* Card 3: Check Balance (Mock) */}
             <div 
-                className="bg-[#1e293b] p-6 rounded-xl border border-gray-700 flex flex-col items-center text-center hover:border-green-500 transition-colors cursor-pointer group"
+                className="bg-slate-800/40 p-6 rounded-2xl border border-slate-700/50 flex flex-col items-center text-center hover:border-green-500/50 hover:bg-slate-800/60 transition-all cursor-pointer group backdrop-blur-sm"
                 onClick={handleCheckBalance}
             >
-                <div className="bg-green-500/20 p-4 rounded-full mb-4 text-green-500 group-hover:bg-green-500 group-hover:text-white transition-all">
-                    <Wallet size={32} />
+                <div className="bg-green-500/10 p-5 rounded-full mb-4 text-green-500 group-hover:bg-green-500 group-hover:text-white transition-all shadow-lg shadow-green-900/20">
+                    <Wallet size={36} />
                 </div>
-                <h3 className="text-white font-semibold mb-2">ตรวจสอบยอดเงิน</h3>
-                <p className="text-xs text-gray-400">ดูยอดเงินคงเหลือในกระเป๋า</p>
-                <span className="mt-4 text-xs bg-blue-900/50 text-blue-300 px-2 py-1 rounded">Demo</span>
+                <h3 className="text-white font-bold mb-2">Check Balance</h3>
+                <p className="text-sm text-slate-400 mb-4">View current wallet balance</p>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full border border-blue-500/20">Demo</span>
             </div>
 
-            {/* Card 4: Last Transaction (Fetch) */}
             <div 
-                className="bg-[#1e293b] p-6 rounded-xl border border-gray-700 flex flex-col items-center text-center hover:border-purple-500 transition-colors cursor-pointer group"
+                className="bg-slate-800/40 p-6 rounded-2xl border border-slate-700/50 flex flex-col items-center text-center hover:border-purple-500/50 hover:bg-slate-800/60 transition-all cursor-pointer group backdrop-blur-sm"
                 onClick={handleCheckLastTx}
             >
-                <div className="bg-purple-500/20 p-4 rounded-full mb-4 text-purple-500 group-hover:bg-purple-500 group-hover:text-white transition-all">
-                    <History size={32} />
+                <div className="bg-purple-500/10 p-5 rounded-full mb-4 text-purple-500 group-hover:bg-purple-500 group-hover:text-white transition-all shadow-lg shadow-purple-900/20">
+                    <History size={36} />
                 </div>
-                <h3 className="text-white font-semibold mb-2">รายการล่าสุด</h3>
-                <p className="text-xs text-gray-400">ดึงข้อมูลรายการล่าสุดทันที</p>
-                <span className="mt-4 text-xs bg-blue-900/50 text-blue-300 px-2 py-1 rounded">API</span>
+                <h3 className="text-white font-bold mb-2">Last Transaction</h3>
+                <p className="text-sm text-slate-400 mb-4">Fetch the most recent item</p>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 px-2 py-1 rounded-full border border-purple-500/20">API</span>
             </div>
         </div>
       )}
 
-      {/* User Management Tab */}
+      {/* Users Tab */}
       {activeTab === 'users' && (
-          <div className="bg-[#1e293b] rounded-lg border border-gray-700 p-6 animate-in fade-in">
+          <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-6 backdrop-blur-sm shadow-xl animate-in fade-in">
               <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                      <Users size={20} /> จัดการผู้ใช้งาน
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                      <Users className="text-orange-500" size={24} /> User Management
                   </h2>
                   <button 
                     onClick={() => openUserModal()}
-                    className="flex items-center gap-2 bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded text-sm transition-colors"
+                    className="flex items-center gap-2 bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-lg shadow-orange-900/20"
                   >
-                      <Plus size={16} /> เพิ่มผู้ใช้
+                      <Plus size={18} /> Add User
                   </button>
               </div>
 
-              <div className="overflow-x-auto">
+              <div className="overflow-hidden rounded-xl border border-slate-700/50">
                   <table className="w-full text-left border-collapse">
                       <thead>
-                          <tr className="bg-[#0f172a] text-gray-400 text-xs uppercase border-b border-gray-700">
+                          <tr className="bg-slate-900/80 text-slate-400 text-xs font-bold uppercase tracking-wider">
                               <th className="p-4">Username</th>
                               <th className="p-4">Role</th>
                               <th className="p-4">Password</th>
                               <th className="p-4 text-right">Actions</th>
                           </tr>
                       </thead>
-                      <tbody className="text-sm text-gray-300 divide-y divide-gray-700">
+                      <tbody className="text-sm text-slate-300 divide-y divide-slate-700/50 bg-slate-800/30">
                           {usersList.map(u => (
-                              <tr key={u.id} className="hover:bg-[#2d3748]">
-                                  <td className="p-4">{u.username}</td>
+                              <tr key={u.id} className="hover:bg-white/5 transition-colors">
+                                  <td className="p-4 font-medium text-white">{u.username}</td>
                                   <td className="p-4">
-                                      <span className={`px-2 py-1 rounded text-xs ${u.role === 'admin' ? 'bg-purple-900/40 text-purple-300 border border-purple-800' : 'bg-blue-900/40 text-blue-300 border border-blue-800'}`}>
+                                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${u.role === 'admin' ? 'bg-purple-500/10 text-purple-300 border-purple-500/20' : 'bg-blue-500/10 text-blue-300 border-blue-500/20'}`}>
                                           {u.role}
                                       </span>
                                   </td>
-                                  <td className="p-4 font-mono text-gray-500">{u.password}</td>
+                                  <td className="p-4 font-mono text-slate-500">{u.password}</td>
                                   <td className="p-4 flex justify-end gap-2">
                                       <button 
                                         onClick={() => openUserModal(u)}
-                                        className="p-1.5 hover:bg-slate-600 rounded text-gray-400 hover:text-white"
+                                        className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
                                       >
-                                          <Edit size={14} />
+                                          <Edit size={16} />
                                       </button>
                                       <button 
                                         onClick={() => handleDeleteUser(u.id)}
-                                        className="p-1.5 hover:bg-red-900/50 rounded text-red-400 hover:text-red-300"
+                                        className="p-2 hover:bg-red-900/30 rounded-lg text-red-400 hover:text-red-300 transition-colors"
                                         disabled={u.username === 'admin'}
                                       >
-                                          <Trash2 size={14} />
+                                          <Trash2 size={16} />
                                       </button>
                                   </td>
                               </tr>
@@ -892,92 +812,93 @@ export default app;
           </div>
       )}
 
-      {/* Backend Code Tab */}
+      {/* Code Tab */}
       {activeTab === 'code' && (
-        <div className="bg-[#1e293b] rounded-lg border border-gray-700 overflow-hidden animate-in fade-in">
-             <div className="bg-[#0f172a] px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div className="bg-slate-900 rounded-2xl border border-slate-700 overflow-hidden shadow-2xl animate-in fade-in">
+             <div className="bg-slate-950 px-4 py-3 border-b border-slate-800 flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                    <FileText size={16} className="text-blue-400"/>
-                    <span className="text-sm font-mono text-gray-300">api/index.js (Vercel Function)</span>
+                    <div className="flex gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50"></div>
+                        <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
+                        <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50"></div>
+                    </div>
+                    <span className="text-xs font-mono text-slate-400 ml-3">api/index.js</span>
                 </div>
                 <button 
                     onClick={handleCopyBackendCode}
-                    className="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded flex items-center gap-2 transition-colors"
+                    className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors border border-slate-700"
                 >
-                    {codeCopied ? <Check size={14}/> : <Clipboard size={14} />} Copy Code
+                    {codeCopied ? <Check size={14} className="text-green-500"/> : <Clipboard size={14} />} Copy
                 </button>
              </div>
-             <div className="p-0 overflow-x-auto">
-                 <pre className="text-xs md:text-sm font-mono text-gray-300 p-4 leading-relaxed whitespace-pre-wrap">
-                    {backendCodeString}
+             <div className="p-0 overflow-x-auto bg-[#0a0f1c]">
+                 <pre className="text-xs md:text-sm font-mono text-slate-300 p-6 leading-relaxed whitespace-pre-wrap">
+                    <code className="language-javascript">{backendCodeString}</code>
                  </pre>
-             </div>
-             <div className="bg-[#0f172a] px-4 py-3 border-t border-gray-700 text-xs text-gray-500">
-                 * ไฟล์นี้จะถูกรันโดย Vercel โดยอัตโนมัติเมื่อวางไว้ในโฟลเดอร์ api/
              </div>
         </div>
       )}
 
       {/* User Modal */}
       {isUserModalOpen && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm p-4">
-              <div className="bg-[#1e293b] rounded-lg shadow-2xl border border-gray-700 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                  <div className="px-6 py-4 border-b border-gray-700 flex justify-between items-center">
-                      <h3 className="text-white font-semibold">{editingUser ? 'แก้ไขผู้ใช้งาน' : 'เพิ่มผู้ใช้งาน'}</h3>
-                      <button onClick={() => setIsUserModalOpen(false)} className="text-gray-400 hover:text-white">
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-md p-4 animate-in fade-in duration-200">
+              <div className="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                  <div className="px-6 py-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/50">
+                      <h3 className="text-white font-bold">{editingUser ? 'Edit User' : 'New User'}</h3>
+                      <button onClick={() => setIsUserModalOpen(false)} className="text-slate-400 hover:text-white transition-colors">
                           <X size={20} />
                       </button>
                   </div>
                   <form onSubmit={handleUserSubmit} className="p-6 space-y-4">
                       {userFormError && (
-                          <div className="bg-red-900/30 text-red-300 text-sm p-2 rounded border border-red-800">
-                              {userFormError}
+                          <div className="bg-red-500/10 text-red-400 text-sm p-3 rounded-lg border border-red-500/20 flex items-center gap-2">
+                              <X size={14} /> {userFormError}
                           </div>
                       )}
                       <div>
-                          <label className="block text-gray-400 text-sm mb-1">Username</label>
+                          <label className="block text-slate-400 text-xs font-bold uppercase mb-1.5">Username</label>
                           <input 
                               type="text" 
                               required
                               value={userForm.username}
                               onChange={e => setUserForm({...userForm, username: e.target.value})}
-                              className="w-full bg-[#0f172a] border border-gray-600 text-white px-3 py-2 rounded focus:outline-none focus:border-orange-500"
+                              className="w-full bg-slate-900 border border-slate-700 text-white px-3 py-2.5 rounded-lg focus:outline-none focus:border-orange-500 transition-colors"
                           />
                       </div>
                       <div>
-                          <label className="block text-gray-400 text-sm mb-1">Password</label>
+                          <label className="block text-slate-400 text-xs font-bold uppercase mb-1.5">Password</label>
                           <input 
                               type="text" 
                               required
                               value={userForm.password}
                               onChange={e => setUserForm({...userForm, password: e.target.value})}
-                              className="w-full bg-[#0f172a] border border-gray-600 text-white px-3 py-2 rounded focus:outline-none focus:border-orange-500"
+                              className="w-full bg-slate-900 border border-slate-700 text-white px-3 py-2.5 rounded-lg focus:outline-none focus:border-orange-500 transition-colors"
                           />
                       </div>
                       <div>
-                          <label className="block text-gray-400 text-sm mb-1">Role</label>
+                          <label className="block text-slate-400 text-xs font-bold uppercase mb-1.5">Role</label>
                           <select 
                               value={userForm.role}
                               onChange={e => setUserForm({...userForm, role: e.target.value as 'admin'|'member'})}
-                              className="w-full bg-[#0f172a] border border-gray-600 text-white px-3 py-2 rounded focus:outline-none focus:border-orange-500"
+                              className="w-full bg-slate-900 border border-slate-700 text-white px-3 py-2.5 rounded-lg focus:outline-none focus:border-orange-500 transition-colors appearance-none"
                           >
                               <option value="member">Staff (Member)</option>
                               <option value="admin">Admin</option>
                           </select>
                       </div>
-                      <div className="pt-2 flex justify-end gap-2">
+                      <div className="pt-4 flex justify-end gap-3">
                           <button 
                             type="button" 
                             onClick={() => setIsUserModalOpen(false)}
-                            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm transition-colors"
+                            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors"
                           >
-                              ยกเลิก
+                              Cancel
                           </button>
                           <button 
                             type="submit" 
-                            className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded text-sm transition-colors"
+                            className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-orange-900/20"
                           >
-                              บันทึก
+                              Save User
                           </button>
                       </div>
                   </form>
