@@ -47,10 +47,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-140px)] p-4 relative overflow-hidden bg-[#111827]">
-      {/* Background Decor */}
-      <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
+      
       <div className="bg-[#1f2937] p-8 rounded-3xl shadow-2xl border border-slate-700 w-full max-w-sm relative z-10 mx-4">
         
         <div className="flex flex-col items-center mb-8">

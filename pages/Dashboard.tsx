@@ -448,7 +448,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                             <>
                                 <button 
                                     onClick={() => { setDataSource('mock'); setCurrentPage(1); }}
-                                    className={`flex-1 sm:flex-none justify-center flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${dataSource === 'mock' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                                    className={`flex-1 sm:flex-none justify-center flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${dataSource === 'mock' ? 'bg-slate-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
                                 >
                                     <Database size={12} /> {t('mock')}
                                 </button>
@@ -535,9 +535,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                     {/* Desktop Row */}
                                     <div className="hidden md:grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-800/50 transition-colors group">
                                         <div className="col-span-3 flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 font-bold text-xs border border-slate-700">
-                                                {tx.sender.slice(0, 2)}
-                                            </div>
                                             <span className="text-sm font-medium text-slate-200 font-mono tracking-wide">
                                                 {formatPhoneNumber(tx.sender)}
                                             </span>
@@ -559,9 +556,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                     <div className="md:hidden p-4 flex flex-col gap-3 hover:bg-slate-800/50 transition-colors border-b border-slate-700 last:border-0">
                                         <div className="flex justify-between items-start">
                                             <div className="flex items-center gap-2">
-                                                 <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 font-bold text-xs border border-slate-700">
-                                                    {tx.sender.slice(0, 2)}
-                                                </div>
                                                 <div className="flex flex-col">
                                                     <span className="text-sm font-medium text-slate-200 font-mono tracking-wide">
                                                         {formatPhoneNumber(tx.sender)}
@@ -575,7 +569,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                                 +{tx.amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                                             </span>
                                         </div>
-                                        <div className="pl-10 text-sm text-slate-400 break-words bg-slate-900/50 p-2 rounded-lg border border-slate-800">
+                                        <div className="pl-0 text-sm text-slate-400 break-words bg-slate-900/50 p-2 rounded-lg border border-slate-800">
                                             <span className="text-xs text-slate-600 block mb-1 uppercase tracking-wider">{t('message')}:</span>
                                             {tx.message || "-"}
                                         </div>
@@ -750,7 +744,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             </div>
             
             <div className="bg-[#1f2937] p-6 rounded-2xl border border-slate-700 flex flex-col items-center text-center opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all cursor-pointer">
-                <div className="bg-blue-900/20 p-5 rounded-full mb-4 text-blue-500">
+                <div className="bg-slate-800/50 p-5 rounded-full mb-4 text-slate-400">
                     <Smartphone size={36} />
                 </div>
                 <h3 className="text-slate-200 font-bold mb-2">{t('svc_outgoing')}</h3>
@@ -759,10 +753,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             </div>
 
             <div 
-                className="bg-[#1f2937] p-6 rounded-2xl border border-slate-700 flex flex-col items-center text-center hover:border-green-500/50 hover:shadow-lg transition-all cursor-pointer group"
+                className="bg-[#1f2937] p-6 rounded-2xl border border-slate-700 flex flex-col items-center text-center hover:border-slate-500/50 hover:shadow-lg transition-all cursor-pointer group"
                 onClick={handleCheckBalance}
             >
-                <div className="bg-green-900/20 p-5 rounded-full mb-4 text-green-500 group-hover:bg-green-600 group-hover:text-white transition-all shadow-sm">
+                <div className="bg-slate-800/50 p-5 rounded-full mb-4 text-slate-400 group-hover:bg-slate-600 group-hover:text-white transition-all shadow-sm">
                     <Wallet size={36} />
                 </div>
                 <h3 className="text-slate-200 font-bold mb-2">{t('svc_balance')}</h3>
@@ -771,10 +765,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             </div>
 
             <div 
-                className="bg-[#1f2937] p-6 rounded-2xl border border-slate-700 flex flex-col items-center text-center hover:border-purple-500/50 hover:shadow-lg transition-all cursor-pointer group"
+                className="bg-[#1f2937] p-6 rounded-2xl border border-slate-700 flex flex-col items-center text-center hover:border-orange-500/50 hover:shadow-lg transition-all cursor-pointer group"
                 onClick={handleCheckLastTx}
             >
-                <div className="bg-purple-900/20 p-5 rounded-full mb-4 text-purple-500 group-hover:bg-purple-600 group-hover:text-white transition-all shadow-sm">
+                <div className="bg-orange-900/20 p-5 rounded-full mb-4 text-orange-500 group-hover:bg-orange-600 group-hover:text-white transition-all shadow-sm">
                     <History size={36} />
                 </div>
                 <h3 className="text-slate-200 font-bold mb-2">{t('svc_last_tx')}</h3>
