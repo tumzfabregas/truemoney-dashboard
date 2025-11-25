@@ -24,6 +24,13 @@ const translations: Record<Language, Record<string, string>> = {
     "cancel": "ยกเลิก",
     "copy": "คัดลอก",
     
+    // Search & Export
+    "search_placeholder": "ค้นหาเบอร์โทร, ข้อความ หรือจำนวนเงิน...",
+    "search": "ค้นหา",
+    "export_csv": "ส่งออก CSV",
+    "total_summary": "ยอดรวมทั้งหมด",
+    "filtered_count": "รายการที่พบ",
+    
     // Table
     "sender": "ผู้โอน",
     "amount": "จำนวนเงิน",
@@ -118,6 +125,13 @@ const translations: Record<Language, Record<string, string>> = {
     "save": "Save",
     "cancel": "Cancel",
     "copy": "Copy",
+
+    // Search & Export
+    "search_placeholder": "Search phone, message or amount...",
+    "search": "Search",
+    "export_csv": "Export CSV",
+    "total_summary": "Total Amount",
+    "filtered_count": "Items Found",
 
     // Table
     "sender": "Sender",

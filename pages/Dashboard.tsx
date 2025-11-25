@@ -3,7 +3,7 @@ import { Transaction, User } from '../types';
 import { fetchTransactions, simulateIncomingWebhook, clearAllData, getUsers, addUser, updateUser, deleteUser } from '../services/mockService';
 import { fetchLiveTransactions, triggerLiveWebhook, clearLiveTransactions, fetchUsersApi, addUserApi, updateUserApi, deleteUserApi } from '../services/apiService';
 import { analyzeTransactions } from '../services/geminiService';
-import { RefreshCw, Sparkles, Server, Clipboard, Check, Clock, Power, Play, Code, Trash2, LayoutDashboard, Globe, Database, Users, Edit, Plus, X, Wallet, BellRing, History, Smartphone, LayoutGrid, ChevronLeft, ChevronRight } from 'lucide-react';
+import { RefreshCw, Sparkles, Server, Clipboard, Check, Clock, Power, Play, Code, Trash2, LayoutDashboard, Globe, Database, Users, Edit, Plus, X, Wallet, BellRing, History, Smartphone, LayoutGrid, ChevronLeft, ChevronRight, Search, Download, Calculator, FileSpreadsheet } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface DashboardProps {
@@ -31,6 +31,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [analysis, setAnalysis] = useState<string>('');
   const [analyzing, setAnalyzing] = useState(false);
   
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Auto Refresh State
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isAutoRefresh, setIsAutoRefresh] = useState(true);
@@ -432,6 +435,28 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       }
   };
 
+  const handleExportCSV = () => {
+      const headers = ['Date', 'Sender', 'Amount', 'Message'];
+      const csvContent = [
+          headers.join(','),
+          ...filteredTransactions.map(tx => [
+              `"${new Date(tx.date).toLocaleString('th-TH')}"`,
+              `"${tx.sender}"`,
+              `"${tx.amount}"`,
+              `"${(tx.message || '').replace(/"/g, '""')}"`
+          ].join(','))
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `truemoney_transactions_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  };
+
   // Utilities
   const formatDate = (isoString: string) => {
     try {
@@ -459,9 +484,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       return phoneNumber;
   };
 
-  // Pagination Logic
-  const totalPages = Math.ceil(transactions.length / ITEMS_PER_PAGE);
-  const displayedTransactions = transactions.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  // Filter & Pagination Logic
+  const filteredTransactions = transactions.filter(tx => 
+    tx.sender.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (tx.message || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    tx.amount.toString().includes(searchQuery)
+  );
+
+  const totalFilteredAmount = filteredTransactions.reduce((acc, curr) => acc + curr.amount, 0);
+
+  const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
+  const displayedTransactions = filteredTransactions.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const backendCodeString = `// Backend Logic (api/index.js)...`.trim();
 
@@ -583,6 +616,43 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     )}
                 </div>
             </div>
+            
+            {/* Search & Summary Section */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-2 bg-[#1E1F20] border border-[#444746] rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row gap-4 items-center">
+                    <div className="relative flex-1 w-full">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search size={18} className="text-gray-500" />
+                        </div>
+                        <input 
+                            type="text" 
+                            value={searchQuery}
+                            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                            className="w-full bg-[#2b2d30] border border-[#444746] text-gray-200 text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors shadow-inner placeholder:text-gray-600"
+                            placeholder={t('search_placeholder')}
+                        />
+                    </div>
+                    {isAdmin && (
+                        <button 
+                            onClick={handleExportCSV}
+                            className="w-full sm:w-auto flex justify-center items-center gap-2 px-5 py-3 rounded-xl bg-[#2b2d30] hover:bg-[#444746] text-gray-300 border border-[#444746] transition-all text-sm font-bold shadow-sm"
+                        >
+                            <FileSpreadsheet size={18} className="text-green-500"/> {t('export_csv')}
+                        </button>
+                    )}
+                </div>
+
+                <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-5 shadow-lg flex items-center justify-between">
+                    <div>
+                         <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('total_summary')}</span>
+                         <div className="text-2xl font-bold text-white mt-1 font-mono tracking-wide">฿ {totalFilteredAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</div>
+                         <div className="text-[10px] text-gray-500 mt-1">{t('filtered_count')}: {filteredTransactions.length}</div>
+                    </div>
+                    <div className="bg-orange-500/10 p-3 rounded-full border border-orange-500/20 text-orange-500">
+                        <Calculator size={24} />
+                    </div>
+                </div>
+            </div>
 
             {/* Main Table Card */}
             <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl overflow-hidden shadow-xl">
@@ -608,7 +678,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                 <History size={40} />
                             </div>
                             <span className="font-semibold text-lg text-gray-400">{t('no_transactions')}</span>
-                            <span className="text-sm mt-1 opacity-70">{t('waiting_webhook')}</span>
+                            {searchQuery && <span className="text-sm mt-1 text-orange-400">"{searchQuery}"</span>}
+                            {!searchQuery && <span className="text-sm mt-1 opacity-70">{t('waiting_webhook')}</span>}
                         </div>
                     ) : (
                         <div className="divide-y divide-[#444746]">
@@ -660,7 +731,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 {/* Pagination Footer */}
                 <div className="p-5 border-t border-[#444746] bg-[#2b2d30] flex flex-col sm:flex-row justify-between items-center gap-5">
                     <div className="text-sm text-gray-400 text-center sm:text-left font-medium">
-                        {t('showing')} <span className="text-white">{displayedTransactions.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}</span> {t('to')} <span className="text-white">{Math.min(currentPage * ITEMS_PER_PAGE, transactions.length)}</span> {t('of')} <span className="text-white">{transactions.length}</span> {t('entries')}
+                        {t('showing')} <span className="text-white">{displayedTransactions.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}</span> {t('to')} <span className="text-white">{Math.min(currentPage * ITEMS_PER_PAGE, filteredTransactions.length)}</span> {t('of')} <span className="text-white">{filteredTransactions.length}</span> {t('entries')}
                     </div>
                     
                     <div className="flex items-center gap-2">
