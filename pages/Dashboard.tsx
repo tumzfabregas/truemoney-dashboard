@@ -13,8 +13,20 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const isAdmin = user.role === 'admin';
   const [activeTab, setActiveTab] = useState<'dashboard' | 'services' | 'users' | 'code'>('dashboard');
   
-  // If not admin, force 'live' mode initially
-  const [dataSource, setDataSource] = useState<'mock' | 'live'>(isAdmin ? 'mock' : 'live');
+  // Initialize DataSource with Persistence
+  const [dataSource, setDataSource] = useState<'mock' | 'live'>(() => {
+    // 1. If Staff, always Live
+    if (!isAdmin) return 'live';
+    
+    // 2. If Admin, check LocalStorage preference
+    const savedPref = localStorage.getItem('tm_datasource_pref');
+    if (savedPref === 'live' || savedPref === 'mock') {
+        return savedPref;
+    }
+    
+    // 3. Default to Mock for Admin if no preference
+    return 'mock';
+  });
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
@@ -51,12 +63,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const ITEMS_PER_PAGE = 10;
   const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://your-domain.com';
 
-  // Enforce Live Mode for non-admins
+  // Enforce Live Mode for non-admins (Safety check)
   useEffect(() => {
     if (!isAdmin) {
       setDataSource('live');
     }
   }, [isAdmin]);
+
+  // Persist DataSource Preference for Admin
+  useEffect(() => {
+    if (isAdmin) {
+        localStorage.setItem('tm_datasource_pref', dataSource);
+    }
+  }, [dataSource, isAdmin]);
 
   const loadData = useCallback(async (isBackgroundRefresh = false) => {
     if (!isBackgroundRefresh) setLoading(true);
@@ -619,7 +638,6 @@ export default app;
                         </div>
 
                          {/* NEW SECTION: Verification Secret */}
-                         {dataSource === 'live' && (
                             <div className="mt-4 pt-4 border-t border-gray-700/50">
                                 <h3 className="text-gray-400 text-xs uppercase font-bold mb-2 flex items-center gap-2">
                                     <KeyRound size={14} /> Verification Secret
@@ -648,7 +666,6 @@ export default app;
                                     </div>
                                 )}
                             </div>
-                         )}
 
                         </div>
                     </div>
