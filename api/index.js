@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // --- MongoDB Cached Connection Pattern (Best for Vercel) ---
-// Updated: Force Redeploy Timestamp v1.1.4
+// Updated: Force Redeploy Timestamp v1.1.6 (Fix Ghost User)
 const MONGODB_URI = process.env.MONGODB_URI;
 
 // Global cache to prevent multiple connections in Serverless
@@ -82,10 +82,9 @@ const SettingsModel = mongoose.models.Settings || mongoose.model('Settings', Set
 
 // --- Fallback Memory Data (Only used if no MongoDB) ---
 let memoryTransactions = [];
-// Clean start: Only admin, no staff
-let memoryUsers = [
-    { id: '1', username: 'admin', password: 'admin', role: 'admin' }
-];
+// Clean start: Empty array to prevent Ghost Users. 
+// If DB is connected, it will use DB. If not, admin must be created via code or seed.
+let memoryUsers = []; 
 let memorySettings = {};
 
 // --- Helpers ---
@@ -104,6 +103,10 @@ const ensureAdminExists = async () => {
                 role: 'admin'
             });
         }
+    } else if (memoryUsers.length === 0 && !MONGODB_URI) {
+        // Only add memory admin if NO DB is configured at all (Local Dev mode)
+        console.log('🌱 Seeding memory Admin user (Local Mode)...');
+        memoryUsers.push({ id: '1', username: 'admin', password: 'admin', role: 'admin' });
     }
 };
 
