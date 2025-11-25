@@ -46,16 +46,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] p-4 bg-[#373737]">
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] p-4 bg-[#131314]">
       
-      <div className="bg-[#454545] p-10 rounded-[2rem] shadow-2xl border border-[#575757] w-full max-w-md relative z-10 mx-4">
+      <div className="bg-[#1E1F20] p-10 rounded-[2rem] shadow-2xl border border-[#444746] w-full max-w-md relative z-10 mx-4">
         
         <div className="flex flex-col items-center mb-10">
-            <div className="bg-[#373737] p-5 rounded-2xl shadow-inner border border-[#575757] mb-6 text-orange-500">
+            <div className="bg-[#2b2d30] p-5 rounded-2xl shadow-inner border border-[#444746] mb-6 text-orange-500">
                 <Wallet size={48} strokeWidth={1.5} />
             </div>
-            <h2 className="text-3xl font-bold text-white tracking-tight text-center">TrueMoney <span className="text-orange-500">Dashboard</span></h2>
-            <p className="text-orange-200/60 mt-2 text-sm font-medium">Secure Admin Access</p>
+            <h2 className="text-3xl font-bold text-gray-100 tracking-tight text-center">TrueMoney <span className="text-orange-500">Dashboard</span></h2>
+            <p className="text-gray-400 mt-2 text-sm font-medium">Secure Admin Access</p>
         </div>
         
         {error && (
@@ -66,23 +66,23 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-orange-200/80 text-xs font-bold uppercase ml-1 tracking-wider">{t('username')}</label>
+            <label className="text-gray-400 text-xs font-bold uppercase ml-1 tracking-wider">{t('username')}</label>
             <input 
               type="text" 
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-[#373737] border border-[#575757] text-white text-lg px-5 py-4 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-gray-600 shadow-inner"
+              className="w-full bg-[#2b2d30] border border-[#444746] text-white text-lg px-5 py-4 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-gray-600 shadow-inner"
               disabled={loading}
               placeholder="Enter your username"
             />
           </div>
           <div className="space-y-2">
-            <label className="text-orange-200/80 text-xs font-bold uppercase ml-1 tracking-wider">{t('password')}</label>
+            <label className="text-gray-400 text-xs font-bold uppercase ml-1 tracking-wider">{t('password')}</label>
             <input 
               type="password" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-[#373737] border border-[#575757] text-white text-lg px-5 py-4 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-gray-600 shadow-inner"
+              className="w-full bg-[#2b2d30] border border-[#444746] text-white text-lg px-5 py-4 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-gray-600 shadow-inner"
               disabled={loading}
               placeholder="••••••••"
             />

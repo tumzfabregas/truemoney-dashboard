@@ -7,13 +7,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playpen+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
         theme: {
           extend: {
             fontFamily: {
-              sans: ['"Noto Sans Thai"', 'sans-serif'],
+              sans: ['"Playpen Sans"', 'cursive', 'sans-serif'],
             },
             colors: {
               slate: {
@@ -22,9 +22,9 @@
                 950: '#020617',
               },
               primary: {
-                bg: '#373737',
-                card: '#454545',
-                border: '#575757',
+                bg: '#131314',
+                card: '#1E1F20',
+                border: '#444746',
                 accent: '#F97316' // Orange
               }
             }
@@ -32,7 +32,7 @@
         },
       }
     </script>
-  <script type="importmap">
+<script type="importmap">
 {
   "imports": {
     "react": "https://aistudiocdn.com/react@^19.2.0",
@@ -50,7 +50,7 @@
 }
 </script>
 </head>
-  <body class="bg-[#373737] text-orange-50/90 antialiased min-h-screen overflow-y-auto font-sans">
+  <body class="bg-[#131314] text-gray-200 antialiased min-h-screen overflow-y-auto font-sans">
     <div id="root" class="h-full"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

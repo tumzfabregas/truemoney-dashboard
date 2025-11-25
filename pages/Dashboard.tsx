@@ -397,7 +397,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const backendCodeString = `// Backend Logic (api/index.js)...`.trim();
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 mt-4 sm:mt-10 font-sans pb-24 text-orange-50/90">
+    <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 mt-4 sm:mt-10 font-sans pb-24 text-gray-200">
       
       {/* Header / Title Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
@@ -409,9 +409,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             <p className="text-sm text-gray-400 mt-2 font-medium">{t('dashboard_subtitle')}</p>
         </div>
 
-        {/* Navigation Tabs (Grey Style) */}
+        {/* Navigation Tabs (AI Studio Style) */}
         {isAdmin && (
-            <div className="w-full md:w-auto flex bg-[#454545] p-1.5 rounded-xl border border-[#575757] shadow-lg overflow-x-auto no-scrollbar">
+            <div className="w-full md:w-auto flex bg-[#1E1F20] p-1.5 rounded-xl border border-[#444746] shadow-lg overflow-x-auto no-scrollbar">
                 {[
                     { id: 'dashboard', label: t('tab_dashboard'), icon: LayoutDashboard },
                     { id: 'services', label: t('tab_services'), icon: LayoutGrid },
@@ -424,7 +424,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                         className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 whitespace-nowrap ${
                             activeTab === tab.id 
                             ? 'bg-orange-600 text-white shadow-md shadow-orange-900/40' 
-                            : 'text-gray-400 hover:text-white hover:bg-[#555555]'
+                            : 'text-gray-400 hover:text-white hover:bg-[#2b2d30]'
                         }`}
                     >
                         <tab.icon size={18} /> <span className="hidden xs:inline">{tab.label}</span>
@@ -438,23 +438,23 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         <div className="space-y-6">
             
             {/* Control Bar */}
-            <div className="bg-[#454545] border border-[#575757] rounded-2xl p-5 shadow-lg flex flex-col md:flex-row justify-between items-stretch md:items-center gap-5">
+            <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-5 shadow-lg flex flex-col md:flex-row justify-between items-stretch md:items-center gap-5">
                 
                 {/* Data Source Toggle */}
                 <div className="flex flex-col sm:flex-row items-center gap-4">
                      <span className="text-xs font-bold text-gray-400 uppercase tracking-widest w-full sm:w-auto text-left">{t('source')}</span>
-                     <div className="w-full sm:w-auto flex bg-[#373737] p-1.5 rounded-xl border border-[#575757] shadow-inner">
+                     <div className="w-full sm:w-auto flex bg-[#2b2d30] p-1.5 rounded-xl border border-[#444746] shadow-inner">
                          {isAdmin ? (
                             <>
                                 <button 
                                     onClick={() => { setDataSource('mock'); setCurrentPage(1); }}
-                                    className={`flex-1 sm:flex-none justify-center flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all uppercase tracking-wide ${dataSource === 'mock' ? 'bg-[#575757] text-white shadow-md' : 'text-gray-500 hover:text-gray-300'}`}
+                                    className={`flex-1 sm:flex-none justify-center flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all uppercase tracking-wide ${dataSource === 'mock' ? 'bg-[#444746] text-white shadow-md' : 'text-gray-500 hover:text-gray-300'}`}
                                 >
                                     <Database size={14} /> {t('mock')}
                                 </button>
                                 <button 
                                     onClick={() => { setDataSource('live'); setCurrentPage(1); }}
-                                    className={`flex-1 sm:flex-none justify-center flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all uppercase tracking-wide ${dataSource === 'live' ? 'bg-green-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-300'}`}
+                                    className={`flex-1 sm:flex-none justify-center flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all uppercase tracking-wide ${dataSource === 'live' ? 'bg-green-800 text-green-100 border border-green-700 shadow-md' : 'text-gray-500 hover:text-gray-300'}`}
                                 >
                                     <Globe size={14} /> {t('live')}
                                 </button>
@@ -469,7 +469,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
                 {/* Status & Actions */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                    <div className="hidden lg:flex items-center gap-2 text-orange-200/80 bg-[#373737] px-4 py-2 rounded-xl border border-[#575757] shadow-inner">
+                    <div className="hidden lg:flex items-center gap-2 text-gray-300 bg-[#2b2d30] px-4 py-2 rounded-xl border border-[#444746] shadow-inner">
                         <Clock size={16} className="text-orange-500"/> 
                         <span className="text-sm font-mono font-medium">{lastUpdated.toLocaleTimeString('th-TH')}</span>
                     </div>
@@ -477,7 +477,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     <div className="grid grid-cols-2 sm:flex gap-3">
                         <button 
                             onClick={toggleAutoRefresh}
-                            className={`flex justify-center items-center gap-2 px-4 py-2.5 sm:py-2 rounded-xl border transition-all text-xs font-bold uppercase tracking-wide ${isAutoRefresh ? 'bg-green-900/20 border-green-800 text-green-400' : 'bg-[#373737] border-[#575757] text-gray-500'}`}
+                            className={`flex justify-center items-center gap-2 px-4 py-2.5 sm:py-2 rounded-xl border transition-all text-xs font-bold uppercase tracking-wide ${isAutoRefresh ? 'bg-green-900/20 border-green-800 text-green-400' : 'bg-[#2b2d30] border-[#444746] text-gray-500'}`}
                         >
                             <Power size={14} /> {isAutoRefresh ? t('auto_on') : t('auto_off')}
                         </button>
@@ -485,7 +485,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                         <button 
                             onClick={handleManualRefresh}
                             disabled={loading}
-                            className="flex justify-center items-center gap-2 px-4 py-2.5 sm:py-2 rounded-xl bg-[#575757] hover:bg-[#666666] text-white transition-all text-xs font-bold border border-[#666666] shadow-sm uppercase tracking-wide"
+                            className="flex justify-center items-center gap-2 px-4 py-2.5 sm:py-2 rounded-xl bg-[#444746] hover:bg-[#505356] text-white transition-all text-xs font-bold border border-[#505356] shadow-sm uppercase tracking-wide"
                         >
                             <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> {t('refresh')}
                         </button>
@@ -503,9 +503,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             </div>
 
             {/* Main Table Card */}
-            <div className="bg-[#454545] border border-[#575757] rounded-2xl overflow-hidden shadow-xl">
+            <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl overflow-hidden shadow-xl">
                 {/* Desktop Table Header */}
-                <div className="hidden md:grid grid-cols-12 gap-6 p-5 bg-[#373737] border-b border-[#575757] text-xs font-bold text-gray-400 uppercase tracking-widest">
+                <div className="hidden md:grid grid-cols-12 gap-6 p-5 bg-[#2b2d30] border-b border-[#444746] text-xs font-bold text-gray-400 uppercase tracking-widest">
                     <div className="col-span-3">{t('sender')}</div>
                     <div className="col-span-3 text-right">{t('amount')}</div>
                     <div className="col-span-3 text-center">{t('date')}</div>
@@ -515,25 +515,25 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 {/* Table Body */}
                 <div className="relative min-h-[400px]">
                     {loading && !isAutoRefresh && (
-                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#373737]/50 backdrop-blur-sm">
+                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#1E1F20]/50 backdrop-blur-sm">
                             <RefreshCw className="animate-spin text-orange-500" size={40} />
                         </div>
                     )}
 
                     {displayedTransactions.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-80 text-gray-500">
-                            <div className="bg-[#373737] p-5 rounded-full mb-4 border border-[#575757] shadow-inner">
+                            <div className="bg-[#2b2d30] p-5 rounded-full mb-4 border border-[#444746] shadow-inner">
                                 <History size={40} />
                             </div>
                             <span className="font-semibold text-lg text-gray-400">{t('no_transactions')}</span>
                             <span className="text-sm mt-1 opacity-70">{t('waiting_webhook')}</span>
                         </div>
                     ) : (
-                        <div className="divide-y divide-[#575757]">
+                        <div className="divide-y divide-[#444746]">
                             {displayedTransactions.map((tx) => (
                                 <React.Fragment key={tx.id}>
                                     {/* Desktop Row */}
-                                    <div className="hidden md:grid grid-cols-12 gap-6 p-5 items-center hover:bg-[#373737] transition-colors group">
+                                    <div className="hidden md:grid grid-cols-12 gap-6 p-5 items-center hover:bg-[#2b2d30] transition-colors group">
                                         <div className="col-span-3 flex items-center gap-4">
                                             <span className="text-base font-semibold text-white font-mono tracking-wide">
                                                 {formatPhoneNumber(tx.sender)}
@@ -547,13 +547,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                         <div className="col-span-3 text-center text-sm text-gray-400 font-mono">
                                             {formatDate(tx.date)}
                                         </div>
-                                        <div className="col-span-3 text-sm text-orange-100/70 truncate group-hover:text-white transition-colors">
+                                        <div className="col-span-3 text-sm text-gray-300 truncate group-hover:text-white transition-colors">
                                             {tx.message}
                                         </div>
                                     </div>
 
                                     {/* Mobile Card Row */}
-                                    <div className="md:hidden p-5 flex flex-col gap-3 hover:bg-[#373737] transition-colors border-b border-[#575757] last:border-0">
+                                    <div className="md:hidden p-5 flex flex-col gap-3 hover:bg-[#2b2d30] transition-colors border-b border-[#444746] last:border-0">
                                         <div className="flex justify-between items-center">
                                             <span className="text-lg font-bold text-white font-mono tracking-wide">
                                                 {formatPhoneNumber(tx.sender)}
@@ -563,9 +563,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-3 text-sm text-gray-400 font-medium">
-                                            <span className="font-mono bg-[#373737] px-2 py-1 rounded border border-[#575757]">{formatDate(tx.date)}</span>
+                                            <span className="font-mono bg-[#2b2d30] px-2 py-1 rounded border border-[#444746]">{formatDate(tx.date)}</span>
                                             {tx.message && (
-                                                <span className="text-orange-100/80 truncate flex-1">{tx.message}</span>
+                                                <span className="text-gray-300 truncate flex-1">{tx.message}</span>
                                             )}
                                         </div>
                                     </div>
@@ -576,7 +576,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 </div>
 
                 {/* Pagination Footer */}
-                <div className="p-5 border-t border-[#575757] bg-[#373737] flex flex-col sm:flex-row justify-between items-center gap-5">
+                <div className="p-5 border-t border-[#444746] bg-[#2b2d30] flex flex-col sm:flex-row justify-between items-center gap-5">
                     <div className="text-sm text-gray-400 text-center sm:text-left font-medium">
                         {t('showing')} <span className="text-white">{displayedTransactions.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}</span> {t('to')} <span className="text-white">{Math.min(currentPage * ITEMS_PER_PAGE, transactions.length)}</span> {t('of')} <span className="text-white">{transactions.length}</span> {t('entries')}
                     </div>
@@ -585,19 +585,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                         <button 
                             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                             disabled={currentPage === 1 || loading}
-                            className="p-2.5 rounded-lg bg-[#454545] border border-[#575757] text-gray-400 hover:text-white hover:bg-[#555555] disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
+                            className="p-2.5 rounded-lg bg-[#444746] border border-[#505356] text-gray-400 hover:text-white hover:bg-[#505356] disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
                         >
                             <ChevronLeft size={18} />
                         </button>
                         
-                        <div className="px-4 py-2 rounded-lg bg-[#454545] border border-[#575757] text-sm font-bold font-mono text-gray-200 shadow-inner">
+                        <div className="px-4 py-2 rounded-lg bg-[#444746] border border-[#505356] text-sm font-bold font-mono text-gray-200 shadow-inner">
                             {t('page')} {currentPage} / {Math.max(totalPages, 1)}
                         </div>
 
                         <button 
                             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                             disabled={currentPage >= totalPages || loading}
-                            className="p-2.5 rounded-lg bg-[#454545] border border-[#575757] text-gray-400 hover:text-white hover:bg-[#555555] disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
+                            className="p-2.5 rounded-lg bg-[#444746] border border-[#505356] text-gray-400 hover:text-white hover:bg-[#505356] disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
                         >
                             <ChevronRight size={18} />
                         </button>
@@ -610,14 +610,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-10">
                     
                     {/* Left Panel: Configuration */}
-                    <div className="bg-[#454545] border border-[#575757] rounded-2xl p-6 shadow-xl">
+                    <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-6 shadow-xl">
                         <h3 className="text-sm font-bold text-orange-500 uppercase tracking-widest mb-6 flex items-center gap-3">
                             <Server size={18} /> {t('config_sim')}
                         </h3>
 
                         <div className="space-y-6">
                             {/* Simulator */}
-                            <div className="bg-[#373737] p-6 rounded-xl border border-[#575757] shadow-inner">
+                            <div className="bg-[#2b2d30] p-6 rounded-xl border border-[#444746] shadow-inner">
                                 <label className="text-xs text-gray-400 font-bold uppercase mb-3 block tracking-wide">{t('simulator')}</label>
                                 <button 
                                     onClick={handleSimulateWebhook}
@@ -631,7 +631,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                             </div>
 
                             {/* Setup Info */}
-                            <div className="bg-[#373737] p-6 rounded-xl border border-[#575757] shadow-inner">
+                            <div className="bg-[#2b2d30] p-6 rounded-xl border border-[#444746] shadow-inner">
                                 <div className="flex justify-between items-center mb-3">
                                     <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">{t('setup_info')}</label>
                                     <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide ${dbStatus.includes('Connected') ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
@@ -640,15 +640,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                 </div>
                                 
                                 <div className="flex gap-3 mb-5">
-                                    <div className="flex-1 bg-[#2b2b2b] border border-[#575757] rounded-xl px-4 py-3 text-xs font-mono text-gray-300 overflow-hidden whitespace-nowrap text-ellipsis shadow-inner">
+                                    <div className="flex-1 bg-[#1a1b1d] border border-[#444746] rounded-xl px-4 py-3 text-xs font-mono text-gray-300 overflow-hidden whitespace-nowrap text-ellipsis shadow-inner">
                                         {dataSource === 'live' ? `${currentOrigin}/api/webhook/truemoney` : 'Switch to Live Mode to see URL'}
                                     </div>
-                                    <button onClick={handleCopyEndpoint} className="bg-[#454545] hover:bg-[#555555] text-gray-300 p-3 rounded-xl border border-[#575757] transition-colors shadow-sm">
+                                    <button onClick={handleCopyEndpoint} className="bg-[#444746] hover:bg-[#505356] text-gray-300 p-3 rounded-xl border border-[#505356] transition-colors shadow-sm">
                                         {copied ? <Check size={18} className="text-green-500"/> : <Clipboard size={18}/>}
                                     </button>
                                 </div>
 
-                                <div className="pt-4 border-t border-[#575757]">
+                                <div className="pt-4 border-t border-[#444746]">
                                     <label className="text-[10px] text-gray-400 font-bold uppercase mb-2 block tracking-wide">{t('verification_secret')}</label>
                                     <div className="flex flex-col sm:flex-row gap-3">
                                         <input 
@@ -656,11 +656,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                             value={verificationSecret}
                                             onChange={(e) => { setVerificationSecret(e.target.value); setIsVerified(false); }}
                                             placeholder={t('verification_placeholder')}
-                                            className="flex-1 bg-[#2b2b2b] border border-[#575757] text-sm text-gray-200 px-4 py-2.5 rounded-xl focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors font-mono shadow-inner placeholder:text-gray-600"
+                                            className="flex-1 bg-[#1a1b1d] border border-[#444746] text-sm text-gray-200 px-4 py-2.5 rounded-xl focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors font-mono shadow-inner placeholder:text-gray-600"
                                         />
                                         <button 
                                             onClick={handleSaveSecret}
-                                            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 uppercase tracking-wide ${isVerified ? 'bg-green-600 text-white shadow-md shadow-green-900/40' : 'bg-[#575757] hover:bg-[#666666] text-white'}`}
+                                            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 uppercase tracking-wide ${isVerified ? 'bg-green-600 text-white shadow-md shadow-green-900/40' : 'bg-[#444746] hover:bg-[#505356] text-white'}`}
                                         >
                                             {isVerified ? <Check size={16} /> : t('save')}
                                         </button>
@@ -671,14 +671,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     </div>
 
                     {/* Right Panel: Tester & AI */}
-                    <div className="bg-[#454545] border border-[#575757] rounded-2xl p-6 shadow-xl">
+                    <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-6 shadow-xl">
                         <h3 className="text-sm font-bold text-orange-500 uppercase tracking-widest mb-6 flex items-center gap-3">
                             <Code size={18} /> {t('advanced_tools')}
                         </h3>
 
                         <div className="space-y-6">
                             {/* JSON Tester */}
-                            <div className="bg-[#373737] p-6 rounded-xl border border-[#575757] shadow-inner">
+                            <div className="bg-[#2b2d30] p-6 rounded-xl border border-[#444746] shadow-inner">
                                 <div className="flex justify-between items-center mb-3">
                                     <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">{t('payload_tester')}</label>
                                 </div>
@@ -686,19 +686,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                     value={jsonInput}
                                     onChange={(e) => setJsonInput(e.target.value)}
                                     placeholder={t('payload_placeholder')}
-                                    className="w-full bg-[#2b2b2b] border border-[#575757] text-gray-200 text-xs p-4 rounded-xl h-28 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono resize-none mb-3 placeholder:text-gray-600 shadow-inner"
+                                    className="w-full bg-[#1a1b1d] border border-[#444746] text-gray-200 text-xs p-4 rounded-xl h-28 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono resize-none mb-3 placeholder:text-gray-600 shadow-inner"
                                 />
                                 {jsonError && <p className="text-red-400 text-xs mb-3 bg-red-500/10 p-2.5 rounded-lg border border-red-500/20 flex items-center gap-2"><X size={12}/>{jsonError}</p>}
                                 <button 
                                     onClick={handlePayloadTest}
-                                    className="w-full flex items-center justify-center gap-2 bg-[#575757] hover:bg-[#666666] text-white text-xs font-bold py-3 rounded-xl transition-all uppercase tracking-wide shadow-sm"
+                                    className="w-full flex items-center justify-center gap-2 bg-[#444746] hover:bg-[#505356] text-white text-xs font-bold py-3 rounded-xl transition-all uppercase tracking-wide shadow-sm"
                                 >
                                     <Play size={14} /> {t('send_payload')}
                                 </button>
                             </div>
 
                             {/* AI Analysis */}
-                            <div className="bg-[#373737] p-6 rounded-xl border border-[#575757] shadow-inner">
+                            <div className="bg-[#2b2d30] p-6 rounded-xl border border-[#444746] shadow-inner">
                                 <div className="flex justify-between items-center mb-3">
                                     <label className="text-xs text-gray-400 font-bold uppercase flex items-center gap-2 tracking-wide">
                                         <Sparkles size={14} className="text-purple-400" /> {t('ai_analysis')}
@@ -711,7 +711,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                         {analyzing ? t('thinking') : t('analyze_btn')}
                                     </button>
                                 </div>
-                                <div className="bg-[#2b2b2b] p-4 rounded-xl min-h-[70px] text-sm text-gray-400 border border-[#575757] leading-relaxed italic shadow-inner">
+                                <div className="bg-[#1a1b1d] p-4 rounded-xl min-h-[70px] text-sm text-gray-400 border border-[#444746] leading-relaxed italic shadow-inner">
                                     {analysis || "AI analysis of your transactions will appear here..."}
                                 </div>
                             </div>
@@ -727,7 +727,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       {activeTab === 'services' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 animate-in fade-in zoom-in-95 duration-300">
             <div 
-                className="bg-[#454545] p-8 rounded-2xl border border-[#575757] flex flex-col items-center text-center hover:border-orange-500/50 hover:shadow-2xl transition-all cursor-pointer group shadow-lg"
+                className="bg-[#1E1F20] p-8 rounded-2xl border border-[#444746] flex flex-col items-center text-center hover:border-orange-500/50 hover:shadow-2xl transition-all cursor-pointer group shadow-lg"
                 onClick={() => setActiveTab('dashboard')}
             >
                 <div className="bg-orange-500/10 p-6 rounded-full mb-6 text-orange-500 group-hover:bg-orange-600 group-hover:text-white transition-all shadow-inner border border-orange-500/20">
@@ -738,20 +738,20 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 <span className="text-[10px] font-bold uppercase tracking-wider bg-green-500/10 text-green-400 px-3 py-1.5 rounded-full border border-green-500/20">{t('active')}</span>
             </div>
             
-            <div className="bg-[#454545] p-8 rounded-2xl border border-[#575757] flex flex-col items-center text-center opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all cursor-pointer shadow-lg">
-                <div className="bg-[#373737] p-6 rounded-full mb-6 text-gray-400 shadow-inner border border-[#575757]">
+            <div className="bg-[#1E1F20] p-8 rounded-2xl border border-[#444746] flex flex-col items-center text-center opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all cursor-pointer shadow-lg">
+                <div className="bg-[#2b2d30] p-6 rounded-full mb-6 text-gray-400 shadow-inner border border-[#444746]">
                     <Smartphone size={40} />
                 </div>
                 <h3 className="text-white font-bold text-lg mb-2">{t('svc_outgoing')}</h3>
                 <p className="text-sm text-gray-400 mb-6 font-medium">{t('svc_outgoing_desc')}</p>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-[#373737] text-gray-400 px-3 py-1.5 rounded-full border border-[#575757]">{t('soon')}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-[#2b2d30] text-gray-400 px-3 py-1.5 rounded-full border border-[#444746]">{t('soon')}</span>
             </div>
 
             <div 
-                className="bg-[#454545] p-8 rounded-2xl border border-[#575757] flex flex-col items-center text-center hover:border-blue-400/50 hover:shadow-2xl transition-all cursor-pointer group shadow-lg"
+                className="bg-[#1E1F20] p-8 rounded-2xl border border-[#444746] flex flex-col items-center text-center hover:border-blue-400/50 hover:shadow-2xl transition-all cursor-pointer group shadow-lg"
                 onClick={handleCheckBalance}
             >
-                <div className="bg-[#373737] p-6 rounded-full mb-6 text-gray-400 group-hover:bg-blue-500 group-hover:text-white transition-all shadow-inner border border-[#575757]">
+                <div className="bg-[#2b2d30] p-6 rounded-full mb-6 text-gray-400 group-hover:bg-blue-500 group-hover:text-white transition-all shadow-inner border border-[#444746]">
                     <Wallet size={40} />
                 </div>
                 <h3 className="text-white font-bold text-lg mb-2">{t('svc_balance')}</h3>
@@ -760,7 +760,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             </div>
 
             <div 
-                className="bg-[#454545] p-8 rounded-2xl border border-[#575757] flex flex-col items-center text-center hover:border-orange-500/50 hover:shadow-2xl transition-all cursor-pointer group shadow-lg"
+                className="bg-[#1E1F20] p-8 rounded-2xl border border-[#444746] flex flex-col items-center text-center hover:border-orange-500/50 hover:shadow-2xl transition-all cursor-pointer group shadow-lg"
                 onClick={handleCheckLastTx}
             >
                 <div className="bg-orange-500/10 p-6 rounded-full mb-6 text-orange-500 group-hover:bg-orange-600 group-hover:text-white transition-all shadow-inner border border-orange-500/20">
@@ -775,7 +775,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
       {/* Users Tab */}
       {activeTab === 'users' && (
-          <div className="bg-[#454545] border border-[#575757] rounded-2xl p-6 shadow-xl animate-in fade-in">
+          <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-6 shadow-xl animate-in fade-in">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-5">
                   <h2 className="text-xl font-bold text-white flex items-center gap-3">
                       <Users className="text-orange-500" size={28} /> {t('user_management')}
@@ -788,18 +788,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                   </button>
               </div>
 
-              <div className="overflow-hidden rounded-xl border border-[#575757] shadow-lg">
+              <div className="overflow-hidden rounded-xl border border-[#444746] shadow-lg">
                   <table className="w-full text-left border-collapse">
                       <thead>
-                          <tr className="bg-[#373737] text-gray-400 text-xs font-bold uppercase tracking-widest">
+                          <tr className="bg-[#2b2d30] text-gray-400 text-xs font-bold uppercase tracking-widest">
                               <th className="p-5">{t('username')}</th>
                               <th className="p-5 hidden sm:table-cell">{t('role')}</th>
                               <th className="p-5 text-right"></th>
                           </tr>
                       </thead>
-                      <tbody className="text-sm text-gray-200 divide-y divide-[#575757] bg-[#454545]">
+                      <tbody className="text-sm text-gray-200 divide-y divide-[#444746] bg-[#1E1F20]">
                           {usersList.map(u => (
-                              <tr key={u.id} className="hover:bg-[#373737] transition-colors">
+                              <tr key={u.id} className="hover:bg-[#2b2d30] transition-colors">
                                   <td className="p-5">
                                       <div className="font-bold text-lg text-white">{u.username}</div>
                                       <div className="sm:hidden mt-2">
@@ -816,7 +816,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                   <td className="p-5 flex justify-end gap-3">
                                       <button 
                                         onClick={() => openUserModal(u)}
-                                        className="p-2.5 hover:bg-[#575757] rounded-lg text-gray-400 hover:text-white transition-colors border border-transparent hover:border-[#666666]"
+                                        className="p-2.5 hover:bg-[#444746] rounded-lg text-gray-400 hover:text-white transition-colors border border-transparent hover:border-[#505356]"
                                       >
                                           <Edit size={18} />
                                       </button>
@@ -838,8 +838,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
       {/* Code Tab */}
       {activeTab === 'code' && (
-        <div className="bg-[#1a1a1a] rounded-2xl border border-[#575757] overflow-hidden shadow-2xl animate-in fade-in">
-             <div className="bg-[#373737] px-5 py-4 border-b border-[#575757] flex justify-between items-center">
+        <div className="bg-[#1a1a1a] rounded-2xl border border-[#444746] overflow-hidden shadow-2xl animate-in fade-in">
+             <div className="bg-[#2b2d30] px-5 py-4 border-b border-[#444746] flex justify-between items-center">
                 <div className="flex items-center gap-3">
                     <div className="flex gap-2">
                         <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50"></div>
@@ -850,7 +850,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 </div>
                 <button 
                     onClick={handleCopyBackendCode}
-                    className="text-xs bg-[#454545] hover:bg-[#575757] text-gray-300 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors border border-[#575757] font-bold uppercase tracking-wide"
+                    className="text-xs bg-[#444746] hover:bg-[#505356] text-gray-300 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors border border-[#505356] font-bold uppercase tracking-wide"
                 >
                     {codeCopied ? <Check size={16} className="text-green-500"/> : <Clipboard size={16} />} {t('copy')}
                 </button>
@@ -866,8 +866,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       {/* User Modal */}
       {isUserModalOpen && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-              <div className="bg-[#454545] rounded-2xl shadow-2xl border border-[#575757] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                  <div className="px-6 py-5 border-b border-[#575757] flex justify-between items-center bg-[#373737]">
+              <div className="bg-[#1E1F20] rounded-2xl shadow-2xl border border-[#444746] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                  <div className="px-6 py-5 border-b border-[#444746] flex justify-between items-center bg-[#2b2d30]">
                       <h3 className="text-white font-bold text-lg">{editingUser ? t('edit_user') : t('new_user')}</h3>
                       <button onClick={() => setIsUserModalOpen(false)} className="text-gray-400 hover:text-white transition-colors">
                           <X size={24} />
@@ -886,7 +886,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                               required
                               value={userForm.username}
                               onChange={e => setUserForm({...userForm, username: e.target.value})}
-                              className="w-full bg-[#373737] border border-[#575757] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors text-base"
+                              className="w-full bg-[#2b2d30] border border-[#444746] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors text-base"
                           />
                       </div>
                       <div>
@@ -896,7 +896,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                               required
                               value={userForm.password}
                               onChange={e => setUserForm({...userForm, password: e.target.value})}
-                              className="w-full bg-[#373737] border border-[#575757] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors text-base"
+                              className="w-full bg-[#2b2d30] border border-[#444746] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors text-base"
                           />
                       </div>
                       <div>
@@ -905,7 +905,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                             <select 
                                 value={userForm.role}
                                 onChange={e => setUserForm({...userForm, role: e.target.value as 'admin'|'member'})}
-                                className="w-full bg-[#373737] border border-[#575757] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors appearance-none text-base"
+                                className="w-full bg-[#2b2d30] border border-[#444746] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors appearance-none text-base"
                             >
                                 <option value="member">{t('role_member')}</option>
                                 <option value="admin">{t('role_admin')}</option>
@@ -919,7 +919,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                           <button 
                             type="button" 
                             onClick={() => setIsUserModalOpen(false)}
-                            className="px-5 py-2.5 bg-[#373737] hover:bg-[#575757] text-gray-300 rounded-xl text-sm font-bold transition-colors border border-[#575757]"
+                            className="px-5 py-2.5 bg-[#2b2d30] hover:bg-[#444746] text-gray-300 rounded-xl text-sm font-bold transition-colors border border-[#444746]"
                           >
                               {t('cancel')}
                           </button>
