@@ -33,6 +33,7 @@ const translations: Record<Language, Record<string, string>> = {
     "summary_today": "ยอดรวมวันนี้",
     "time_range_today": "(00:00 - 23:59)",
     "summary_month": "ยอดรวมเดือนนี้",
+    "summary_month_3": "สรุปยอดรายเดือน (3 เดือนล่าสุด)",
     "total_amount": "ยอดเงินรวม",
     "tx_count": "จำนวนรายการ",
     "filtered_count": "รายการที่พบ",
@@ -67,6 +68,7 @@ const translations: Record<Language, Record<string, string>> = {
     // Reports
     "report_daily_income": "รายได้รายวัน (30 วันล่าสุด)",
     "report_date": "วันที่",
+    "report_month": "เดือน",
     "report_count": "รายการ",
     "report_total": "ยอดรวม",
 
@@ -156,6 +158,7 @@ const translations: Record<Language, Record<string, string>> = {
     "summary_today": "Daily Total",
     "time_range_today": "(00:00 - 23:59)",
     "summary_month": "Monthly Total",
+    "summary_month_3": "Monthly Report (Last 3 Months)",
     "total_amount": "Total Amount",
     "tx_count": "Transactions",
     "filtered_count": "Items Found",
@@ -190,6 +193,7 @@ const translations: Record<Language, Record<string, string>> = {
     // Reports
     "report_daily_income": "Daily Income (Last 30 Days)",
     "report_date": "Date",
+    "report_month": "Month",
     "report_count": "Count",
     "report_total": "Total",
 

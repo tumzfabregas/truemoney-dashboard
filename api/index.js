@@ -169,9 +169,22 @@ app.post('/api/webhook/truemoney', async (req, res) => {
         let amount = Number(transactionData.amount || 0);
         amount = amount / 100; // Convert Satang to Baht
 
+        // --- VALIDATION CHECK ---
+        // Reject if amount is 0 or invalid, or sender is missing.
+        if (amount <= 0 || isNaN(amount)) {
+            console.warn('Blocked Invalid Transaction: Amount is 0 or invalid');
+            return res.status(400).send({ status: 'error', message: 'Invalid Amount' });
+        }
+        
+        const sender = transactionData.sender_mobile || transactionData.payer_mobile;
+        if (!sender) {
+             console.warn('Blocked Invalid Transaction: Missing sender');
+             return res.status(400).send({ status: 'error', message: 'Missing Sender' });
+        }
+
         const newTransaction = {
             id: `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-            sender: transactionData.sender_mobile || transactionData.payer_mobile || 'Unknown',
+            sender: sender,
             amount: amount,
             date: transactionData.received_time || new Date().toISOString(),
             message: transactionData.message || 'Webhook P2P',

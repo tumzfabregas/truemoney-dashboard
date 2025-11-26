@@ -39,6 +39,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
+  // Status Dropdown State
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
   // Auto Refresh State
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -84,9 +86,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   // Initialize Audio
   useEffect(() => {
-      // Simple beep sound (base64)
-      const soundUri = "data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU"; // Placeholder for brevity, using a reliable online source or allowing user to set it is better. 
-      // Using a reliable short notification sound hosted on a CDN is safer for this demo.
       audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
       audioRef.current.volume = 0.5;
   }, []);
@@ -102,6 +101,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         localStorage.setItem('tm_datasource_pref', dataSource);
     }
   }, [dataSource, isDev]);
+
+  // Close Dropdown when clicking outside
+  useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+          if (activeDropdown) {
+              setActiveDropdown(null);
+          }
+      };
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+  }, [activeDropdown]);
 
   const checkDbStatus = useCallback(async () => {
       try {
@@ -343,9 +353,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       const sender = data.sender_mobile || data.payer_mobile || 'Unknown';
       const message = data.message || 'Webhook Payload';
       
-      if (amount === 0) {
-         setJsonError('Amount missing');
+      // --- Validation for Simulation ---
+      if (amount <= 0) {
+         setJsonError('Amount must be greater than 0');
          return;
+      }
+      if (!sender || sender === 'Unknown') {
+          setJsonError('Missing sender information');
+          return;
       }
 
       let date = new Date().toISOString();
@@ -462,6 +477,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       }
   };
 
+  const handleStatusClick = (e: React.MouseEvent, id: string) => {
+      e.stopPropagation(); // Prevent triggering global click listener immediately
+      setActiveDropdown(activeDropdown === id ? null : id);
+  };
+
   const handleStatusChange = async (id: string, newStatus: string) => {
       try {
           if (dataSource === 'live') {
@@ -471,6 +491,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           }
           // Optimistic update locally
           setTransactions(prev => prev.map(tx => tx.id === id ? { ...tx, status: newStatus as any } : tx));
+          setActiveDropdown(null);
       } catch (e) {
           console.error("Failed to update status", e);
       }
@@ -563,13 +584,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const totalTodayAmount = dailyTransactions.reduce((acc, curr) => acc + Number(curr.amount), 0);
   const totalTodayCount = dailyTransactions.length;
 
-  // 2. Monthly Total
+  // 2. Monthly Total (Current Month)
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const monthlyTransactions = transactions.filter(tx => new Date(tx.date) >= startOfMonth);
   const totalMonthAmount = monthlyTransactions.reduce((acc, curr) => acc + Number(curr.amount), 0);
   const totalMonthCount = monthlyTransactions.length;
 
-  // 3. Reports Data Preparation
+  // 3. Reports Data Preparation (Daily Chart)
   const prepareChartData = () => {
       const last30Days = [...Array(30)].map((_, i) => {
           const d = new Date();
@@ -588,6 +609,25 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       });
   };
   const chartData = prepareChartData();
+
+  // 4. Reports Data Preparation (Monthly Table - Last 3 Months)
+  const prepareMonthlyStats = () => {
+      const months = [];
+      for (let i = 0; i < 3; i++) {
+          const d = new Date();
+          d.setMonth(d.getMonth() - i);
+          const monthKey = d.toISOString().slice(0, 7); // YYYY-MM
+          
+          const txns = transactions.filter(tx => tx.date.startsWith(monthKey));
+          months.push({
+              monthName: d.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' }),
+              count: txns.length,
+              amount: txns.reduce((sum, tx) => sum + Number(tx.amount), 0)
+          });
+      }
+      return months;
+  };
+  const monthlyStats = prepareMonthlyStats();
 
 
   const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
@@ -846,18 +886,21 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                             {formatDate(tx.date)}
                                         </div>
                                         <div className="col-span-2">
-                                            <div className="relative group/status">
-                                                <button className={`w-full px-3 py-1.5 rounded-lg border text-xs font-bold uppercase tracking-wide flex items-center justify-between ${getStatusColor(tx.status || 'normal')}`}>
+                                            <div className="relative">
+                                                <button 
+                                                    onClick={(e) => handleStatusClick(e, tx.id)}
+                                                    className={`w-full px-3 py-1.5 rounded-lg border text-xs font-bold uppercase tracking-wide flex items-center justify-between ${getStatusColor(tx.status || 'normal')}`}
+                                                >
                                                     {getStatusLabel(tx.status || 'normal')}
                                                     {isAdmin && <Tag size={12} className="opacity-50" />}
                                                 </button>
-                                                {isAdmin && (
-                                                    <div className="absolute top-full left-0 w-full bg-[#2b2d30] border border-[#444746] rounded-lg shadow-xl z-20 hidden group-hover/status:block mt-1">
+                                                {isAdmin && activeDropdown === tx.id && (
+                                                    <div className="absolute top-full left-0 w-full bg-[#2b2d30] border border-[#444746] rounded-lg shadow-xl z-20 mt-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
                                                         {['normal', 'verified', 'issue', 'refund'].map(s => (
                                                             <button 
                                                                 key={s}
                                                                 onClick={() => handleStatusChange(tx.id, s)}
-                                                                className={`w-full text-left px-4 py-2 text-xs font-bold hover:bg-[#444746] first:rounded-t-lg last:rounded-b-lg ${getStatusColor(s)} border-0`}
+                                                                className={`w-full text-left px-4 py-2 text-xs font-bold hover:bg-[#444746] ${getStatusColor(s)} border-0`}
                                                             >
                                                                 {getStatusLabel(s)}
                                                             </button>
@@ -883,17 +926,20 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                         </div>
                                         <div className="flex justify-between items-center mt-1">
                                             <span className="text-sm text-orange-50 font-mono">{formatDate(tx.date)}</span>
-                                            <div className="relative group/status">
-                                                <button className={`px-3 py-1 rounded-lg border text-[10px] font-bold uppercase tracking-wide ${getStatusColor(tx.status || 'normal')}`}>
+                                            <div className="relative">
+                                                <button 
+                                                    onClick={(e) => handleStatusClick(e, tx.id)}
+                                                    className={`px-3 py-1 rounded-lg border text-[10px] font-bold uppercase tracking-wide ${getStatusColor(tx.status || 'normal')}`}
+                                                >
                                                     {getStatusLabel(tx.status || 'normal')}
                                                 </button>
-                                                {isAdmin && (
-                                                    <div className="absolute right-0 bottom-full mb-1 w-32 bg-[#2b2d30] border border-[#444746] rounded-lg shadow-xl z-20 hidden group-hover/status:block">
+                                                {isAdmin && activeDropdown === tx.id && (
+                                                    <div className="absolute right-0 bottom-full mb-1 w-32 bg-[#2b2d30] border border-[#444746] rounded-lg shadow-xl z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
                                                         {['normal', 'verified', 'issue', 'refund'].map(s => (
                                                             <button 
                                                                 key={s}
                                                                 onClick={() => handleStatusChange(tx.id, s)}
-                                                                className={`w-full text-left px-4 py-2 text-xs font-bold hover:bg-[#444746] first:rounded-t-lg last:rounded-b-lg ${getStatusColor(s)} border-0`}
+                                                                className={`w-full text-left px-4 py-2 text-xs font-bold hover:bg-[#444746] ${getStatusColor(s)} border-0`}
                                                             >
                                                                 {getStatusLabel(s)}
                                                             </button>
@@ -1162,26 +1208,58 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                   </div>
               </div>
 
-              {/* Detailed Report Table */}
-              <div className="bg-[#454545] border border-[#444746] rounded-2xl overflow-hidden shadow-xl">
-                  <table className="w-full text-left border-collapse">
-                      <thead>
-                          <tr className="bg-[#373737] text-gray-400 text-xs font-bold uppercase tracking-widest">
-                              <th className="p-5">{t('report_date')}</th>
-                              <th className="p-5 text-center">{t('report_count')}</th>
-                              <th className="p-5 text-right">{t('report_total')}</th>
-                          </tr>
-                      </thead>
-                      <tbody className="text-sm text-gray-200 divide-y divide-[#444746] bg-[#454545]">
-                          {chartData.slice().reverse().map((day, idx) => (
-                              <tr key={idx} className="hover:bg-[#373737] transition-colors">
-                                  <td className="p-5 font-mono text-orange-50">{day.date}</td>
-                                  <td className="p-5 text-center font-bold">{day.count}</td>
-                                  <td className="p-5 text-right font-bold text-white font-mono">฿ {day.amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
-                              </tr>
-                          ))}
-                      </tbody>
-                  </table>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Monthly Summary Table (Last 3 Months) */}
+                <div className="bg-[#454545] border border-[#444746] rounded-2xl overflow-hidden shadow-xl">
+                    <div className="p-5 bg-[#373737] border-b border-[#444746] text-sm font-bold text-orange-500 uppercase tracking-widest">
+                        {t('summary_month_3')}
+                    </div>
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-[#373737]/50 text-gray-400 text-xs font-bold uppercase tracking-widest">
+                                <th className="p-5">{t('report_month')}</th>
+                                <th className="p-5 text-center">{t('report_count')}</th>
+                                <th className="p-5 text-right">{t('report_total')}</th>
+                            </tr>
+                        </thead>
+                        <tbody className="text-sm text-gray-200 divide-y divide-[#444746] bg-[#454545]">
+                            {monthlyStats.map((month, idx) => (
+                                <tr key={idx} className="hover:bg-[#373737] transition-colors">
+                                    <td className="p-5 font-medium text-white">{month.monthName}</td>
+                                    <td className="p-5 text-center font-bold text-gray-400">{month.count}</td>
+                                    <td className="p-5 text-right font-bold text-green-400 font-mono">฿ {month.amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Daily Summary Table */}
+                <div className="bg-[#454545] border border-[#444746] rounded-2xl overflow-hidden shadow-xl flex flex-col">
+                    <div className="p-5 bg-[#373737] border-b border-[#444746] text-sm font-bold text-orange-500 uppercase tracking-widest">
+                        {t('report_daily_income')}
+                    </div>
+                    <div className="max-h-[400px] overflow-y-auto">
+                        <table className="w-full text-left border-collapse relative">
+                            <thead className="sticky top-0 bg-[#373737] shadow-sm z-10">
+                                <tr className="text-gray-400 text-xs font-bold uppercase tracking-widest">
+                                    <th className="p-5">{t('report_date')}</th>
+                                    <th className="p-5 text-center">{t('report_count')}</th>
+                                    <th className="p-5 text-right">{t('report_total')}</th>
+                                </tr>
+                            </thead>
+                            <tbody className="text-sm text-gray-200 divide-y divide-[#444746] bg-[#454545]">
+                                {chartData.slice().reverse().map((day, idx) => (
+                                    <tr key={idx} className="hover:bg-[#373737] transition-colors">
+                                        <td className="p-5 font-mono text-orange-50">{day.date}</td>
+                                        <td className="p-5 text-center font-bold">{day.count}</td>
+                                        <td className="p-5 text-right font-bold text-white font-mono">฿ {day.amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
               </div>
           </div>
       )}
