@@ -1153,7 +1153,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                             >
                                 <option value="staff">{t('role_staff')}</option>
                                 {/* Admin can create Staff. Dev can create everything. */}
-                                {isDev && <option value="admin">{t('role_admin')}</option>}
+                                {(isDev || user.role === 'admin') && <option value="admin">{t('role_admin')}</option>}
                                 {isDev && <option value="dev">{t('role_dev')}</option>}
                             </select>
                             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
