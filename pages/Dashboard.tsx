@@ -485,14 +485,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       const cleaned = phoneNumber.replace(/\D/g, '');
       const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
       
-      // Mask for Staff, unless it's their own balance (forceShow)
-      if (!isAdmin && !forceShow) {
-          if (match) {
-              return `${match[1]}-xxx-${match[3]}`;
-          }
-          return phoneNumber.substring(0, 3) + 'xxxx' + phoneNumber.substring(phoneNumber.length - 4);
-      }
-
+      // Always show full number for everyone as per request
       if (match) {
         return `${match[1]}-${match[2]}-${match[3]}`;
       }
@@ -552,9 +545,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             <div className="w-full md:w-auto flex bg-[#1E1F20] p-1.5 rounded-xl border border-[#444746] shadow-lg overflow-x-auto no-scrollbar">
                 {[
                     { id: 'dashboard', label: t('tab_dashboard'), icon: LayoutDashboard },
-                    { id: 'services', label: t('tab_services'), icon: LayoutGrid },
+                    // Services Tab only for Dev now
+                    ...(isDev ? [{ id: 'services', label: t('tab_services'), icon: LayoutGrid }] : []),
                     { id: 'users', label: t('tab_users'), icon: Users },
-                    // Code tab only for Dev
                     ...(isDev ? [{ id: 'code', label: t('tab_code'), icon: Code }] : []),
                 ].map((tab) => (
                     <button 
@@ -688,7 +681,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                  <div>
                                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">{t('summary_today')}</span>
                                      <span className="text-[9px] text-gray-500 font-medium block mb-1">{t('time_range_today')}</span>
-                                     <div className="text-2xl md:text-3xl font-bold text-white mt-1 font-mono tracking-wide">฿ {totalTodayAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</div>
+                                     <div className="text-3xl font-bold text-white mt-1 font-mono tracking-wide">฿ {totalTodayAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</div>
                                  </div>
                                  <div className="bg-orange-500/10 p-2 rounded-lg text-orange-500">
                                      <Calculator size={16} />
@@ -706,7 +699,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                              <div className="flex justify-between items-start z-10">
                                  <div>
                                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">{t('summary_month')}</span>
-                                     <div className="text-2xl md:text-3xl font-bold text-white mt-1 font-mono tracking-wide pt-4">฿ {totalMonthAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</div>
+                                     <div className="text-3xl font-bold text-white mt-1 font-mono tracking-wide pt-4">฿ {totalMonthAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</div>
                                  </div>
                                  <div className="bg-blue-500/10 p-2 rounded-lg text-blue-500">
                                      <Calendar size={16} />
@@ -969,7 +962,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       )}
 
       {/* Services Tab */}
-      {activeTab === 'services' && isAdmin && (
+      {activeTab === 'services' && isDev && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 animate-in fade-in zoom-in-95 duration-300">
             <div 
                 className="bg-[#1E1F20] p-8 rounded-2xl border border-[#444746] flex flex-col items-center text-center hover:border-orange-500/50 hover:shadow-2xl transition-all cursor-pointer group shadow-lg"
