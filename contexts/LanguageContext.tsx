@@ -23,6 +23,8 @@ const translations: Record<Language, Record<string, string>> = {
     "save": "บันทึก",
     "cancel": "ยกเลิก",
     "copy": "คัดลอก",
+    "sound_on": "เสียง: เปิด",
+    "sound_off": "เสียง: ปิด",
     
     // Search & Export
     "search_placeholder": "ค้นหาเบอร์โทร, ข้อความ หรือจำนวนเงิน...",
@@ -40,6 +42,7 @@ const translations: Record<Language, Record<string, string>> = {
     "amount": "จำนวนเงิน",
     "date": "วันที่",
     "message": "ข้อความ",
+    "status": "สถานะ",
     "showing": "แสดง",
     "to": "ถึง",
     "of": "จาก",
@@ -48,11 +51,24 @@ const translations: Record<Language, Record<string, string>> = {
     "no_transactions": "ไม่พบรายการ",
     "waiting_webhook": "กำลังรอข้อมูล...",
 
+    // Status Tags
+    "status_normal": "ปกติ",
+    "status_verified": "ตรวจสอบแล้ว",
+    "status_issue": "มีปัญหา",
+    "status_refund": "คืนเงิน",
+
     // Tabs
     "tab_dashboard": "แดชบอร์ด",
     "tab_services": "บริการ",
+    "tab_reports": "รายงาน",
     "tab_users": "ผู้ใช้งาน",
     "tab_code": "โค้ด API",
+
+    // Reports
+    "report_daily_income": "รายได้รายวัน (30 วันล่าสุด)",
+    "report_date": "วันที่",
+    "report_count": "รายการ",
+    "report_total": "ยอดรวม",
 
     // Admin Tools
     "config_sim": "ตั้งค่า & จำลองข้อมูล",
@@ -130,6 +146,8 @@ const translations: Record<Language, Record<string, string>> = {
     "save": "Save",
     "cancel": "Cancel",
     "copy": "Copy",
+    "sound_on": "Sound: On",
+    "sound_off": "Sound: Off",
 
     // Search & Export
     "search_placeholder": "Search phone, message or amount...",
@@ -147,6 +165,7 @@ const translations: Record<Language, Record<string, string>> = {
     "amount": "Amount",
     "date": "Date",
     "message": "Message",
+    "status": "Status",
     "showing": "Showing",
     "to": "to",
     "of": "of",
@@ -155,11 +174,24 @@ const translations: Record<Language, Record<string, string>> = {
     "no_transactions": "No transactions found",
     "waiting_webhook": "Waiting for data...",
 
+    // Status Tags
+    "status_normal": "Normal",
+    "status_verified": "Verified",
+    "status_issue": "Issue",
+    "status_refund": "Refund",
+
     // Tabs
     "tab_dashboard": "Dashboard",
     "tab_services": "Services",
+    "tab_reports": "Reports",
     "tab_users": "Users",
     "tab_code": "API Code",
+
+    // Reports
+    "report_daily_income": "Daily Income (Last 30 Days)",
+    "report_date": "Date",
+    "report_count": "Count",
+    "report_total": "Total",
 
     // Admin Tools
     "config_sim": "Configuration & Simulation",

@@ -30,6 +30,17 @@ export const triggerLiveWebhook = async (payload: any) => {
     });
 };
 
+// Update Transaction Status
+export const updateTransactionStatusApi = async (id: string, status: string): Promise<Transaction> => {
+    const response = await fetch(`/api/transactions/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+    });
+    if (!response.ok) throw new Error('Failed to update status');
+    return await response.json();
+};
+
 // --- User Management API ---
 
 export const loginApi = async (username: string, password: string): Promise<User> => {

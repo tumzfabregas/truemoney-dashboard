@@ -55,6 +55,7 @@ const TransactionSchema = new mongoose.Schema({
     date: Date,
     message: String,
     type: String,
+    status: { type: String, default: 'normal' }, // normal, verified, issue, refund
     rawPayload: Object
 }, { timestamps: true });
 
@@ -175,6 +176,7 @@ app.post('/api/webhook/truemoney', async (req, res) => {
             date: transactionData.received_time || new Date().toISOString(),
             message: transactionData.message || 'Webhook P2P',
             type: 'INCOME',
+            status: 'normal',
             rawPayload: transactionData
         };
 
@@ -201,6 +203,30 @@ app.get('/api/transactions', async (req, res) => {
             res.json(data);
         } else {
             res.json(memoryTransactions);
+        }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Update Transaction Status
+app.put('/api/transactions/:id/status', async (req, res) => {
+    const id = req.params.id;
+    const { status } = req.body;
+    
+    try {
+        if (isDbConnected()) {
+            const updated = await TransactionModel.findOneAndUpdate({ id: id }, { status }, { new: true });
+            if (!updated) return res.status(404).json({ error: 'Transaction not found' });
+            res.json(updated);
+        } else {
+            const idx = memoryTransactions.findIndex(t => t.id === id);
+            if (idx !== -1) {
+                memoryTransactions[idx].status = status;
+                res.json(memoryTransactions[idx]);
+            } else {
+                res.status(404).json({ error: 'Transaction not found' });
+            }
         }
     } catch (e) {
         res.status(500).json({ error: e.message });

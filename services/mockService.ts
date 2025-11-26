@@ -16,8 +16,8 @@ const getStoredData = (): Transaction[] => {
   }
 
   const initialData: Transaction[] = [
-    { id: 'TXN-001', sender: '081-234-1234', amount: 500.00, date: new Date(Date.now() - 1000 * 60 * 5).toISOString(), message: 'ค่าบริการ', type: 'INCOME' },
-    { id: 'TXN-002', sender: '089-876-5678', amount: 120.50, date: new Date(Date.now() - 1000 * 60 * 60).toISOString(), message: 'เติมเกม', type: 'INCOME' },
+    { id: 'TXN-001', sender: '081-234-1234', amount: 500.00, date: new Date(Date.now() - 1000 * 60 * 5).toISOString(), message: 'ค่าบริการ', type: 'INCOME', status: 'normal' },
+    { id: 'TXN-002', sender: '089-876-5678', amount: 120.50, date: new Date(Date.now() - 1000 * 60 * 60).toISOString(), message: 'เติมเกม', type: 'INCOME', status: 'verified' },
   ];
   
   localStorage.setItem(STORAGE_KEY, JSON.stringify(initialData));
@@ -53,13 +53,25 @@ export const simulateIncomingWebhook = (amount: number, sender: string, message:
     amount: amount,
     date: date || new Date().toISOString(),
     message: message,
-    type: 'INCOME'
+    type: 'INCOME',
+    status: 'normal'
   };
 
   allData.unshift(newTxn); 
   saveData(allData);
 
   return newTxn;
+};
+
+export const updateTransactionStatusMock = (id: string, status: string) => {
+    const allData = getStoredData();
+    const idx = allData.findIndex(t => t.id === id);
+    if (idx !== -1) {
+        allData[idx] = { ...allData[idx], status: status as any };
+        saveData(allData);
+        return allData[idx];
+    }
+    throw new Error('Transaction not found');
 };
 
 export const clearAllData = () => {
