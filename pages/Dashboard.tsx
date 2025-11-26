@@ -3,7 +3,7 @@ import { Transaction, User } from '../types';
 import { fetchTransactions, simulateIncomingWebhook, clearAllData, getUsers, addUser, updateUser, deleteUser } from '../services/mockService';
 import { fetchLiveTransactions, triggerLiveWebhook, clearLiveTransactions, fetchUsersApi, addUserApi, updateUserApi, deleteUserApi } from '../services/apiService';
 import { analyzeTransactions } from '../services/geminiService';
-import { RefreshCw, Sparkles, Server, Clipboard, Check, Clock, Power, Play, Code, Trash2, LayoutDashboard, Globe, Database, Users, Edit, Plus, X, Wallet, BellRing, History, Smartphone, LayoutGrid, ChevronLeft, ChevronRight, Search, FileSpreadsheet, Calculator } from 'lucide-react';
+import { RefreshCw, Sparkles, Server, Clipboard, Check, Clock, Power, Play, Code, Trash2, LayoutDashboard, Globe, Database, Users, Edit, Plus, X, Wallet, BellRing, History, Smartphone, LayoutGrid, ChevronLeft, ChevronRight, Search, FileSpreadsheet, Calculator, Calendar } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface DashboardProps {
@@ -506,18 +506,33 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     tx.amount.toString().includes(searchQuery)
   );
 
-  // Calculate Today's Total (Midnight - Now)
+  // --- Total Calculation Logic ---
+  
+  // 1. Daily Total
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const totalTodayAmount = transactions
-    .filter(tx => new Date(tx.date) >= today)
-    .reduce((acc, curr) => acc + Number(curr.amount), 0); // Force Number conversion
+  
+  const dailyTransactions = transactions.filter(tx => new Date(tx.date) >= today);
+  const totalTodayAmount = dailyTransactions.reduce((acc, curr) => acc + Number(curr.amount), 0);
+  const totalTodayCount = dailyTransactions.length;
+
+  // 2. Monthly Total
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const monthlyTransactions = transactions.filter(tx => new Date(tx.date) >= startOfMonth);
+  const totalMonthAmount = monthlyTransactions.reduce((acc, curr) => acc + Number(curr.amount), 0);
+  const totalMonthCount = monthlyTransactions.length;
 
 
   const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
   const displayedTransactions = filteredTransactions.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const backendCodeString = `// Backend Logic (api/index.js)...`.trim();
+
+  // Filter Users List: Admin cannot see Dev
+  const filteredUsersList = usersList.filter(u => {
+    if (user.role === 'admin' && u.role === 'dev') return false;
+    return true;
+  });
 
   return (
     <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 mt-4 sm:mt-10 font-sans pb-24 text-gray-200">
@@ -640,8 +655,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             </div>
             
             {/* Search & Summary Section */}
-            <div className={`grid grid-cols-1 ${!isStaff ? 'md:grid-cols-3' : 'md:grid-cols-1'} gap-6`}>
-                <div className={`${!isStaff ? 'md:col-span-2' : ''} bg-[#1E1F20] border border-[#444746] rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row gap-4 items-center`}>
+            <div className={`grid grid-cols-1 ${!isStaff ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-6`}>
+                <div className={`${!isStaff ? '' : ''} bg-[#1E1F20] border border-[#444746] rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row gap-4 items-center`}>
                     <div className="relative flex-1 w-full">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <Search size={18} className="text-gray-500" />
@@ -664,16 +679,43 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     )}
                 </div>
 
-                {/* Hide Total Today for Staff */}
+                {/* Summary Cards (Daily & Monthly) - Hidden for Staff */}
                 {!isStaff && (
-                    <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-5 shadow-lg flex items-center justify-between">
-                        <div>
-                             <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('total_today')}</span>
-                             <div className="text-2xl font-bold text-white mt-1 font-mono tracking-wide">฿ {totalTodayAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</div>
-                             <div className="text-[10px] text-gray-500 mt-1">{t('filtered_count')}: {filteredTransactions.length}</div>
+                    <div className="grid grid-cols-2 gap-4">
+                        {/* Daily Total */}
+                        <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-4 shadow-lg flex flex-col justify-between relative overflow-hidden">
+                             <div className="flex justify-between items-start z-10">
+                                 <div>
+                                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">{t('summary_today')}</span>
+                                     <div className="text-lg md:text-xl font-bold text-white mt-1 font-mono tracking-wide">฿ {totalTodayAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</div>
+                                 </div>
+                                 <div className="bg-orange-500/10 p-2 rounded-lg text-orange-500">
+                                     <Calculator size={16} />
+                                 </div>
+                             </div>
+                             <div className="mt-2 text-[10px] text-gray-500 font-medium z-10">
+                                 {totalTodayCount} {t('tx_count')}
+                             </div>
+                             {/* Decorative BG */}
+                             <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-orange-500/5 rounded-full blur-xl"></div>
                         </div>
-                        <div className="bg-orange-500/10 p-3 rounded-full border border-orange-500/20 text-orange-500">
-                            <Calculator size={24} />
+
+                        {/* Monthly Total */}
+                        <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-4 shadow-lg flex flex-col justify-between relative overflow-hidden">
+                             <div className="flex justify-between items-start z-10">
+                                 <div>
+                                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">{t('summary_month')}</span>
+                                     <div className="text-lg md:text-xl font-bold text-white mt-1 font-mono tracking-wide">฿ {totalMonthAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</div>
+                                 </div>
+                                 <div className="bg-blue-500/10 p-2 rounded-lg text-blue-500">
+                                     <Calendar size={16} />
+                                 </div>
+                             </div>
+                             <div className="mt-2 text-[10px] text-gray-500 font-medium z-10">
+                                 {totalMonthCount} {t('tx_count')}
+                             </div>
+                             {/* Decorative BG */}
+                             <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-blue-500/5 rounded-full blur-xl"></div>
                         </div>
                     </div>
                 )}
@@ -1000,7 +1042,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                           </tr>
                       </thead>
                       <tbody className="text-sm text-gray-200 divide-y divide-[#444746] bg-[#1E1F20]">
-                          {usersList.map(u => (
+                          {filteredUsersList.map(u => (
                               <tr key={u.id} className="hover:bg-[#2b2d30] transition-colors">
                                   <td className="p-5">
                                       <div className="font-bold text-lg text-white">{u.username}</div>
@@ -1016,7 +1058,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                       </span>
                                   </td>
                                   <td className="p-5 flex justify-end gap-3">
-                                      {isDev && (
+                                      {/* Admin can edit Staff. Dev can edit everyone. */}
+                                      {(isDev || (isAdmin && u.role === 'staff')) && (
                                         <button 
                                             onClick={() => openUserModal(u)}
                                             className="p-2.5 hover:bg-[#444746] rounded-lg text-gray-400 hover:text-white transition-colors border border-transparent hover:border-[#505356]"
@@ -1024,7 +1067,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                             <Edit size={18} />
                                         </button>
                                       )}
-                                      {isDev && (
+                                      
+                                      {(isDev || (isAdmin && u.role === 'staff')) && (
                                         <button 
                                             onClick={() => handleDeleteUser(u.id)}
                                             className="p-2.5 hover:bg-red-500/20 rounded-lg text-red-400 hover:text-red-300 transition-colors border border-transparent hover:border-red-500/30"
@@ -1114,7 +1158,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                 className="w-full bg-[#2b2d30] border border-[#444746] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors appearance-none text-base"
                             >
                                 <option value="staff">{t('role_staff')}</option>
-                                <option value="admin">{t('role_admin')}</option>
+                                {/* Admin can create Staff. Dev can create everything. */}
+                                {isDev && <option value="admin">{t('role_admin')}</option>}
                                 {isDev && <option value="dev">{t('role_dev')}</option>}
                             </select>
                             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">

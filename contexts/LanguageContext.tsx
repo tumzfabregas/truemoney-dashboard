@@ -28,8 +28,10 @@ const translations: Record<Language, Record<string, string>> = {
     "search_placeholder": "ค้นหาเบอร์โทร, ข้อความ หรือจำนวนเงิน...",
     "search": "ค้นหา",
     "export_csv": "ส่งออก CSV",
-    "total_summary": "ยอดรวมทั้งหมด",
-    "total_today": "ยอดรวมวันนี้ (00:00 - ปัจจุบัน)",
+    "summary_today": "ยอดรวมวันนี้",
+    "summary_month": "ยอดรวมเดือนนี้",
+    "total_amount": "ยอดเงินรวม",
+    "tx_count": "จำนวนรายการ",
     "filtered_count": "รายการที่พบ",
     
     // Table
@@ -132,8 +134,10 @@ const translations: Record<Language, Record<string, string>> = {
     "search_placeholder": "Search phone, message or amount...",
     "search": "Search",
     "export_csv": "Export CSV",
-    "total_summary": "Total Amount",
-    "total_today": "Total Today (Midnight - Now)",
+    "summary_today": "Daily Total",
+    "summary_month": "Monthly Total",
+    "total_amount": "Total Amount",
+    "tx_count": "Transactions",
     "filtered_count": "Items Found",
 
     // Table
