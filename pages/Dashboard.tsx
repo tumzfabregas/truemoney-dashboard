@@ -687,7 +687,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                              <div className="flex justify-between items-start z-10">
                                  <div>
                                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">{t('summary_today')}</span>
-                                     <div className="text-lg md:text-xl font-bold text-white mt-1 font-mono tracking-wide">฿ {totalTodayAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</div>
+                                     <span className="text-[9px] text-gray-500 font-medium block mb-1">{t('time_range_today')}</span>
+                                     <div className="text-2xl md:text-3xl font-bold text-white mt-1 font-mono tracking-wide">฿ {totalTodayAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</div>
                                  </div>
                                  <div className="bg-orange-500/10 p-2 rounded-lg text-orange-500">
                                      <Calculator size={16} />
@@ -705,7 +706,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                              <div className="flex justify-between items-start z-10">
                                  <div>
                                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">{t('summary_month')}</span>
-                                     <div className="text-lg md:text-xl font-bold text-white mt-1 font-mono tracking-wide">฿ {totalMonthAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</div>
+                                     <div className="text-2xl md:text-3xl font-bold text-white mt-1 font-mono tracking-wide pt-4">฿ {totalMonthAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</div>
                                  </div>
                                  <div className="bg-blue-500/10 p-2 rounded-lg text-blue-500">
                                      <Calendar size={16} />
