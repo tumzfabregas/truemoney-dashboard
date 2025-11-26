@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // --- MongoDB Cached Connection Pattern (Best for Vercel) ---
-// Updated: Force Redeploy Timestamp v1.1.6 (Fix Ghost User)
+// Updated: Support 3-level roles (Dev, Admin, Staff)
 const MONGODB_URI = process.env.MONGODB_URI;
 
 // Global cache to prevent multiple connections in Serverless
@@ -59,15 +59,14 @@ const TransactionSchema = new mongoose.Schema({
     rawPayload: Object
 }, { timestamps: true });
 
-// TTL Index: Auto-delete data older than 90 days (3 months)
-// 90 days * 24 hours * 60 minutes * 60 seconds = 7776000 seconds
+// TTL Index: Auto-delete data older than 90 days
 TransactionSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7776000 });
 
 const UserSchema = new mongoose.Schema({
     id: String,
     username: { type: String, unique: true },
     password: String,
-    role: String
+    role: String // dev, admin, staff
 });
 
 const SettingsSchema = new mongoose.Schema({
@@ -82,31 +81,28 @@ const SettingsModel = mongoose.models.Settings || mongoose.model('Settings', Set
 
 // --- Fallback Memory Data (Only used if no MongoDB) ---
 let memoryTransactions = [];
-// Clean start: Empty array to prevent Ghost Users. 
-// If DB is connected, it will use DB. If not, admin must be created via code or seed.
 let memoryUsers = []; 
 let memorySettings = {};
 
 // --- Helpers ---
 const isDbConnected = () => mongoose.connection.readyState === 1;
 
-// Seed Admin if DB is empty
+// Seed Dev/Admin if DB is empty
 const ensureAdminExists = async () => {
     if (isDbConnected()) {
         const count = await UserModel.countDocuments();
         if (count === 0) {
-            console.log('🌱 Seeding default Admin user...');
+            console.log('🌱 Seeding default Dev user...');
             await UserModel.create({
                 id: Date.now().toString(),
                 username: 'admin',
                 password: 'admin',
-                role: 'admin'
+                role: 'dev' // Default to Dev for full access
             });
         }
     } else if (memoryUsers.length === 0 && !MONGODB_URI) {
-        // Only add memory admin if NO DB is configured at all (Local Dev mode)
-        console.log('🌱 Seeding memory Admin user (Local Mode)...');
-        memoryUsers.push({ id: '1', username: 'admin', password: 'admin', role: 'admin' });
+        console.log('🌱 Seeding memory Dev user (Local Mode)...');
+        memoryUsers.push({ id: '1', username: 'admin', password: 'admin', role: 'dev' });
     }
 };
 
@@ -177,7 +173,6 @@ app.post('/api/webhook/truemoney', async (req, res) => {
 app.get('/api/transactions', async (req, res) => {
     try {
         if (isDbConnected()) {
-            // Increased limit to 2000 to cover approx 3 months of history for typical usage
             const data = await TransactionModel.find().sort({ date: -1 }).limit(2000);
             res.json(data);
         } else {
@@ -279,7 +274,7 @@ app.post('/api/login', async (req, res) => {
         if (user) {
             return res.json({
                 id: user.id || user._id.toString(),
-                username: user.username, // Return original casing
+                username: user.username,
                 role: user.role,
                 password: user.password
             });
@@ -315,14 +310,15 @@ app.post('/api/users', async (req, res) => {
             
             const newUser = await UserModel.create({
                 id: Date.now().toString(),
-                username, password, role: role || 'member'
+                username, password, 
+                role: role || 'staff' // Default to Staff
             });
             return res.json(newUser);
         } else {
             if (memoryUsers.find(u => u.username.toLowerCase() === username.toLowerCase())) {
                 return res.status(400).json({ error: 'Username taken' });
             }
-            const newUser = { id: Date.now().toString(), username, password, role: role || 'member' };
+            const newUser = { id: Date.now().toString(), username, password, role: role || 'staff' };
             memoryUsers.push(newUser);
             res.json(newUser);
         }

@@ -12,12 +12,18 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const { t } = useLanguage();
-  const isAdmin = user.role === 'admin';
+  
+  // Permissions Logic
+  const isDev = user.role === 'dev';
+  const isAdmin = user.role === 'dev' || user.role === 'admin';
+  const isStaff = user.role === 'staff';
+
   const [activeTab, setActiveTab] = useState<'dashboard' | 'services' | 'users' | 'code'>('dashboard');
   
   // Initialize DataSource with Persistence
   const [dataSource, setDataSource] = useState<'mock' | 'live'>(() => {
-    if (!isAdmin) return 'live';
+    // Force Live for Staff/Admin unless they are Dev
+    if (!isDev) return 'live';
     const savedPref = localStorage.getItem('tm_datasource_pref');
     if (savedPref === 'live' || savedPref === 'mock') {
         return savedPref;
@@ -64,7 +70,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [usersList, setUsersList] = useState<User[]>([]);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [userForm, setUserForm] = useState({ username: '', password: '', role: 'member' as 'admin' | 'member' });
+  const [userForm, setUserForm] = useState({ username: '', password: '', role: 'staff' as 'dev' | 'admin' | 'staff' });
   const [userFormError, setUserFormError] = useState('');
 
   // Constants
@@ -72,16 +78,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://your-domain.com';
 
   useEffect(() => {
-    if (!isAdmin) {
+    if (!isDev) {
       setDataSource('live');
     }
-  }, [isAdmin]);
+  }, [isDev]);
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isDev) {
         localStorage.setItem('tm_datasource_pref', dataSource);
     }
-  }, [dataSource, isAdmin]);
+  }, [dataSource, isDev]);
 
   const checkDbStatus = useCallback(async () => {
       try {
@@ -121,9 +127,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
               const data = await res.json();
               if (data.status === 'ok' && data.data) {
                   const rawBalance = Number(data.data.balance || 0);
-                  // API balance usually Satang string
                   setWalletBalance((rawBalance / 100).toLocaleString('th-TH', { minimumFractionDigits: 2 }));
-                  setWalletPhone(formatPhoneNumber(data.data.mobile_no));
+                  setWalletPhone(formatPhoneNumber(data.data.mobile_no, true));
               }
           } else {
               setWalletPhone(null);
@@ -144,13 +149,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   }, [isAdmin, checkDbStatus, fetchSettings]);
 
   useEffect(() => {
-      if (dataSource === 'live') {
+      if (dataSource === 'live' && isAdmin) {
           fetchBalance();
       } else {
           setWalletBalance(null);
           setWalletPhone(null);
       }
-  }, [dataSource, fetchBalance]);
+  }, [dataSource, fetchBalance, isAdmin]);
 
   const loadData = useCallback(async (isBackgroundRefresh = false) => {
     if (!isBackgroundRefresh) setLoading(true);
@@ -177,7 +182,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           }
       }
 
-      // Sort Date Descending
       data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       
       setTransactions(data);
@@ -217,20 +221,20 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     if (isAutoRefresh) {
       timerRef.current = setInterval(() => {
         loadData(true);
-        if (dataSource === 'live') fetchBalance(); // Refresh balance too
+        if (dataSource === 'live' && isAdmin) fetchBalance();
       }, REFRESH_INTERVAL);
     }
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [loadData, isAutoRefresh, dataSource, fetchBalance]);
+  }, [loadData, isAutoRefresh, dataSource, fetchBalance, isAdmin]);
 
   const toggleAutoRefresh = () => setIsAutoRefresh(prev => !prev);
 
   const handleManualRefresh = () => {
     loadData();
-    if (dataSource === 'live') fetchBalance();
+    if (dataSource === 'live' && isAdmin) fetchBalance();
     if (isAdmin && activeTab === 'users') loadUsers();
     if (isAdmin) checkDbStatus();
   };
@@ -252,7 +256,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     const prefix = `08${Math.floor(Math.random() * 10)}`; 
     const middle = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     const last = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-    const randomSender = `${prefix}${middle}${last}`; // Send raw, format later
+    const randomSender = `${prefix}${middle}${last}`;
     
     if (dataSource === 'mock') {
         simulateIncomingWebhook(randomAmount, randomSender);
@@ -400,7 +404,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           setUserForm({ username: userToEdit.username, password: userToEdit.password || '', role: userToEdit.role });
       } else {
           setEditingUser(null);
-          setUserForm({ username: '', password: '', role: 'member' });
+          setUserForm({ username: '', password: '', role: 'staff' }); // Default to Staff for new users
       }
       setIsUserModalOpen(true);
   };
@@ -474,10 +478,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     }
   };
 
-  const formatPhoneNumber = (phoneNumber: string) => {
+  const formatPhoneNumber = (phoneNumber: string, forceShow: boolean = false) => {
       if (!phoneNumber) return '-';
       const cleaned = phoneNumber.replace(/\D/g, '');
       const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
+      
+      // Mask for Staff, unless it's their own balance (forceShow)
+      if (!isAdmin && !forceShow) {
+          if (match) {
+              return `${match[1]}-xxx-${match[3]}`;
+          }
+          return phoneNumber.substring(0, 3) + 'xxxx' + phoneNumber.substring(phoneNumber.length - 4);
+      }
+
       if (match) {
         return `${match[1]}-${match[2]}-${match[3]}`;
       }
@@ -491,7 +504,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     tx.amount.toString().includes(searchQuery)
   );
 
-  const totalFilteredAmount = filteredTransactions.reduce((acc, curr) => acc + curr.amount, 0);
+  // Calculate Today's Total (Midnight - Now)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const totalTodayAmount = transactions
+    .filter(tx => new Date(tx.date) >= today)
+    .reduce((acc, curr) => acc + curr.amount, 0);
+
 
   const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
   const displayedTransactions = filteredTransactions.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -511,14 +530,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             <p className="text-sm text-gray-400 mt-2 font-medium">{t('dashboard_subtitle')}</p>
         </div>
 
-        {/* Navigation Tabs (AI Studio Style) */}
+        {/* Navigation Tabs (Admin/Dev Only) */}
         {isAdmin && (
             <div className="w-full md:w-auto flex bg-[#1E1F20] p-1.5 rounded-xl border border-[#444746] shadow-lg overflow-x-auto no-scrollbar">
                 {[
                     { id: 'dashboard', label: t('tab_dashboard'), icon: LayoutDashboard },
                     { id: 'services', label: t('tab_services'), icon: LayoutGrid },
                     { id: 'users', label: t('tab_users'), icon: Users },
-                    { id: 'code', label: t('tab_code'), icon: Code },
+                    // Code tab only for Dev
+                    ...(isDev ? [{ id: 'code', label: t('tab_code'), icon: Code }] : []),
                 ].map((tab) => (
                     <button 
                         key={tab.id}
@@ -546,7 +566,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
                      <span className="text-xs font-bold text-gray-400 uppercase tracking-widest hidden md:inline">{t('source')}</span>
                      <div className="w-full sm:w-auto flex bg-[#2b2d30] p-1.5 rounded-xl border border-[#444746] shadow-inner">
-                         {isAdmin ? (
+                         {isDev ? (
                             <>
                                 <button 
                                     onClick={() => { setDataSource('mock'); setCurrentPage(1); }}
@@ -570,8 +590,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                          )}
                      </div>
                      
-                     {/* Wallet Balance Display (Mobile & Desktop) */}
-                     {dataSource === 'live' && walletBalance && (
+                     {/* Wallet Balance Display (Admin Only) */}
+                     {dataSource === 'live' && walletBalance && isAdmin && (
                         <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-4 px-5 py-3 sm:py-2 rounded-xl bg-[#2b2d30] border border-[#444746] shadow-inner mt-1 sm:mt-0">
                             <span className="text-xs text-gray-400 font-bold uppercase sm:hidden">Balance</span>
                             <div className="flex items-center gap-2">
@@ -619,7 +639,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             
             {/* Search & Summary Section */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="md:col-span-2 bg-[#1E1F20] border border-[#444746] rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row gap-4 items-center">
+                <div className={`${isStaff ? 'md:col-span-3' : 'md:col-span-2'} bg-[#1E1F20] border border-[#444746] rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row gap-4 items-center`}>
                     <div className="relative flex-1 w-full">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <Search size={18} className="text-gray-500" />
@@ -642,16 +662,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     )}
                 </div>
 
-                <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-5 shadow-lg flex items-center justify-between">
-                    <div>
-                         <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('total_summary')}</span>
-                         <div className="text-2xl font-bold text-white mt-1 font-mono tracking-wide">฿ {totalFilteredAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</div>
-                         <div className="text-[10px] text-gray-500 mt-1">{t('filtered_count')}: {filteredTransactions.length}</div>
+                {!isStaff && (
+                    <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-5 shadow-lg flex items-center justify-between">
+                        <div>
+                             <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('total_today')}</span>
+                             <div className="text-2xl font-bold text-white mt-1 font-mono tracking-wide">฿ {totalTodayAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</div>
+                             <div className="text-[10px] text-gray-500 mt-1">{t('filtered_count')}: {filteredTransactions.length}</div>
+                        </div>
+                        <div className="bg-orange-500/10 p-3 rounded-full border border-orange-500/20 text-orange-500">
+                            <Calculator size={24} />
+                        </div>
                     </div>
-                    <div className="bg-orange-500/10 p-3 rounded-full border border-orange-500/20 text-orange-500">
-                        <Calculator size={24} />
-                    </div>
-                </div>
+                )}
             </div>
 
             {/* Main Table Card */}
@@ -848,52 +870,54 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     </div>
 
                     {/* Right Panel: Tester & AI */}
-                    <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-6 shadow-xl">
-                        <h3 className="text-sm font-bold text-orange-500 uppercase tracking-widest mb-6 flex items-center gap-3">
-                            <Code size={18} /> {t('advanced_tools')}
-                        </h3>
+                    {isDev && (
+                        <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-6 shadow-xl">
+                            <h3 className="text-sm font-bold text-orange-500 uppercase tracking-widest mb-6 flex items-center gap-3">
+                                <Code size={18} /> {t('advanced_tools')}
+                            </h3>
 
-                        <div className="space-y-6">
-                            {/* JSON Tester */}
-                            <div className="bg-[#2b2d30] p-6 rounded-xl border border-[#444746] shadow-inner">
-                                <div className="flex justify-between items-center mb-3">
-                                    <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">{t('payload_tester')}</label>
-                                </div>
-                                <textarea 
-                                    value={jsonInput}
-                                    onChange={(e) => setJsonInput(e.target.value)}
-                                    placeholder={t('payload_placeholder')}
-                                    className="w-full bg-[#1a1b1d] border border-[#444746] text-gray-200 text-xs p-4 rounded-xl h-28 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono resize-none mb-3 placeholder:text-gray-600 shadow-inner"
-                                />
-                                {jsonError && <p className="text-red-400 text-xs mb-3 bg-red-500/10 p-2.5 rounded-lg border border-red-500/20 flex items-center gap-2"><X size={12}/>{jsonError}</p>}
-                                <button 
-                                    onClick={handlePayloadTest}
-                                    className="w-full flex items-center justify-center gap-2 bg-[#444746] hover:bg-[#505356] text-white text-xs font-bold py-3 rounded-xl transition-all uppercase tracking-wide shadow-sm"
-                                >
-                                    <Play size={14} /> {t('send_payload')}
-                                </button>
-                            </div>
-
-                            {/* AI Analysis */}
-                            <div className="bg-[#2b2d30] p-6 rounded-xl border border-[#444746] shadow-inner">
-                                <div className="flex justify-between items-center mb-3">
-                                    <label className="text-xs text-gray-400 font-bold uppercase flex items-center gap-2 tracking-wide">
-                                        <Sparkles size={14} className="text-purple-400" /> {t('ai_analysis')}
-                                    </label>
+                            <div className="space-y-6">
+                                {/* JSON Tester */}
+                                <div className="bg-[#2b2d30] p-6 rounded-xl border border-[#444746] shadow-inner">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">{t('payload_tester')}</label>
+                                    </div>
+                                    <textarea 
+                                        value={jsonInput}
+                                        onChange={(e) => setJsonInput(e.target.value)}
+                                        placeholder={t('payload_placeholder')}
+                                        className="w-full bg-[#1a1b1d] border border-[#444746] text-gray-200 text-xs p-4 rounded-xl h-28 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono resize-none mb-3 placeholder:text-gray-600 shadow-inner"
+                                    />
+                                    {jsonError && <p className="text-red-400 text-xs mb-3 bg-red-500/10 p-2.5 rounded-lg border border-red-500/20 flex items-center gap-2"><X size={12}/>{jsonError}</p>}
                                     <button 
-                                        onClick={handleGeminiAnalysis}
-                                        disabled={analyzing}
-                                        className="text-[10px] text-purple-400 hover:text-purple-300 underline disabled:opacity-50 font-medium"
+                                        onClick={handlePayloadTest}
+                                        className="w-full flex items-center justify-center gap-2 bg-[#444746] hover:bg-[#505356] text-white text-xs font-bold py-3 rounded-xl transition-all uppercase tracking-wide shadow-sm"
                                     >
-                                        {analyzing ? t('thinking') : t('analyze_btn')}
+                                        <Play size={14} /> {t('send_payload')}
                                     </button>
                                 </div>
-                                <div className="bg-[#1a1b1d] p-4 rounded-xl min-h-[70px] text-sm text-gray-400 border border-[#444746] leading-relaxed italic shadow-inner">
-                                    {analysis || "AI analysis of your transactions will appear here..."}
+
+                                {/* AI Analysis */}
+                                <div className="bg-[#2b2d30] p-6 rounded-xl border border-[#444746] shadow-inner">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <label className="text-xs text-gray-400 font-bold uppercase flex items-center gap-2 tracking-wide">
+                                            <Sparkles size={14} className="text-purple-400" /> {t('ai_analysis')}
+                                        </label>
+                                        <button 
+                                            onClick={handleGeminiAnalysis}
+                                            disabled={analyzing}
+                                            className="text-[10px] text-purple-400 hover:text-purple-300 underline disabled:opacity-50 font-medium"
+                                        >
+                                            {analyzing ? t('thinking') : t('analyze_btn')}
+                                        </button>
+                                    </div>
+                                    <div className="bg-[#1a1b1d] p-4 rounded-xl min-h-[70px] text-sm text-gray-400 border border-[#444746] leading-relaxed italic shadow-inner">
+                                        {analysis || "AI analysis of your transactions will appear here..."}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
                 </div>
             )}
@@ -901,7 +925,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       )}
 
       {/* Services Tab */}
-      {activeTab === 'services' && (
+      {activeTab === 'services' && isAdmin && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 animate-in fade-in zoom-in-95 duration-300">
             <div 
                 className="bg-[#1E1F20] p-8 rounded-2xl border border-[#444746] flex flex-col items-center text-center hover:border-orange-500/50 hover:shadow-2xl transition-all cursor-pointer group shadow-lg"
@@ -951,7 +975,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       )}
 
       {/* Users Tab */}
-      {activeTab === 'users' && (
+      {activeTab === 'users' && isAdmin && (
           <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-6 shadow-xl animate-in fade-in">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-5">
                   <h2 className="text-xl font-bold text-white flex items-center gap-3">
@@ -980,30 +1004,34 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                   <td className="p-5">
                                       <div className="font-bold text-lg text-white">{u.username}</div>
                                       <div className="sm:hidden mt-2">
-                                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border ${u.role === 'admin' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
-                                              {u.role === 'admin' ? t('role_admin') : t('role_member')}
+                                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border ${u.role === 'dev' ? 'bg-red-500/10 text-red-400 border-red-500/20' : u.role === 'admin' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
+                                              {u.role === 'dev' ? t('role_dev') : u.role === 'admin' ? t('role_admin') : t('role_staff')}
                                           </span>
                                       </div>
                                   </td>
                                   <td className="p-5 hidden sm:table-cell">
-                                      <span className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide border ${u.role === 'admin' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
-                                          {u.role === 'admin' ? t('role_admin') : t('role_member')}
+                                      <span className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide border ${u.role === 'dev' ? 'bg-red-500/10 text-red-400 border-red-500/20' : u.role === 'admin' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
+                                          {u.role === 'dev' ? t('role_dev') : u.role === 'admin' ? t('role_admin') : t('role_staff')}
                                       </span>
                                   </td>
                                   <td className="p-5 flex justify-end gap-3">
-                                      <button 
-                                        onClick={() => openUserModal(u)}
-                                        className="p-2.5 hover:bg-[#444746] rounded-lg text-gray-400 hover:text-white transition-colors border border-transparent hover:border-[#505356]"
-                                      >
-                                          <Edit size={18} />
-                                      </button>
-                                      <button 
-                                        onClick={() => handleDeleteUser(u.id)}
-                                        className="p-2.5 hover:bg-red-500/20 rounded-lg text-red-400 hover:text-red-300 transition-colors border border-transparent hover:border-red-500/30"
-                                        disabled={u.username.toLowerCase() === 'admin'}
-                                      >
-                                          <Trash2 size={18} />
-                                      </button>
+                                      {isDev && (
+                                        <button 
+                                            onClick={() => openUserModal(u)}
+                                            className="p-2.5 hover:bg-[#444746] rounded-lg text-gray-400 hover:text-white transition-colors border border-transparent hover:border-[#505356]"
+                                        >
+                                            <Edit size={18} />
+                                        </button>
+                                      )}
+                                      {isDev && (
+                                        <button 
+                                            onClick={() => handleDeleteUser(u.id)}
+                                            className="p-2.5 hover:bg-red-500/20 rounded-lg text-red-400 hover:text-red-300 transition-colors border border-transparent hover:border-red-500/30"
+                                            disabled={u.username.toLowerCase() === 'admin'}
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                      )}
                                   </td>
                               </tr>
                           ))}
@@ -1014,7 +1042,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       )}
 
       {/* Code Tab */}
-      {activeTab === 'code' && (
+      {activeTab === 'code' && isDev && (
         <div className="bg-[#1a1a1a] rounded-2xl border border-[#444746] overflow-hidden shadow-2xl animate-in fade-in">
              <div className="bg-[#2b2d30] px-5 py-4 border-b border-[#444746] flex justify-between items-center">
                 <div className="flex items-center gap-3">
@@ -1081,11 +1109,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                           <div className="relative">
                             <select 
                                 value={userForm.role}
-                                onChange={e => setUserForm({...userForm, role: e.target.value as 'admin'|'member'})}
+                                onChange={e => setUserForm({...userForm, role: e.target.value as 'dev'|'admin'|'staff'})}
                                 className="w-full bg-[#2b2d30] border border-[#444746] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors appearance-none text-base"
                             >
-                                <option value="member">{t('role_member')}</option>
+                                <option value="staff">{t('role_staff')}</option>
                                 <option value="admin">{t('role_admin')}</option>
+                                {isDev && <option value="dev">{t('role_dev')}</option>}
                             </select>
                             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
                                 <ChevronRight size={16} className="rotate-90" />

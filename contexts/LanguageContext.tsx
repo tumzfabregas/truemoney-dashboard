@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, PropsWithChildren } from 'react';
 
 type Language = 'th' | 'en';
 
@@ -29,6 +29,7 @@ const translations: Record<Language, Record<string, string>> = {
     "search": "ค้นหา",
     "export_csv": "ส่งออก CSV",
     "total_summary": "ยอดรวมทั้งหมด",
+    "total_today": "ยอดรวมวันนี้ (00:00 - ปัจจุบัน)",
     "filtered_count": "รายการที่พบ",
     
     // Table
@@ -95,8 +96,9 @@ const translations: Record<Language, Record<string, string>> = {
     "username": "ชื่อผู้ใช้",
     "password": "รหัสผ่าน",
     "role": "สิทธิ์",
-    "role_admin": "แอดมิน",
-    "role_member": "พนักงาน",
+    "role_dev": "Developer",
+    "role_admin": "Admin (ผู้จัดการ)",
+    "role_staff": "Staff (พนักงาน)",
     "save_user": "บันทึกผู้ใช้",
     
     // Login
@@ -131,6 +133,7 @@ const translations: Record<Language, Record<string, string>> = {
     "search": "Search",
     "export_csv": "Export CSV",
     "total_summary": "Total Amount",
+    "total_today": "Total Today (Midnight - Now)",
     "filtered_count": "Items Found",
 
     // Table
@@ -197,8 +200,9 @@ const translations: Record<Language, Record<string, string>> = {
     "username": "Username",
     "password": "Password",
     "role": "Role",
+    "role_dev": "Developer",
     "role_admin": "Admin",
-    "role_member": "Staff",
+    "role_staff": "Staff",
     "save_user": "Save User",
 
     // Login
@@ -217,7 +221,7 @@ const translations: Record<Language, Record<string, string>> = {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-export const LanguageProvider = ({ children }: { children: ReactNode }) => {
+export const LanguageProvider = ({ children }: PropsWithChildren) => {
   const [language, setLanguage] = useState<Language>('th');
 
   const t = (key: string) => {
