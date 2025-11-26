@@ -716,7 +716,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         {/* Status Indicators */}
         <div className="flex flex-col sm:flex-row gap-4">
              {/* API Status Button */}
-             <div className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-2xl border transition-all ${
+             <div 
+                onClick={isDev ? () => setDataSource(prev => prev === 'live' ? 'mock' : 'live') : undefined}
+                className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-2xl border transition-all ${isDev ? 'cursor-pointer hover:opacity-80' : ''} ${
                  dataSource === 'live' 
                  ? 'bg-green-500/10 border-green-500/30 text-green-400' 
                  : 'bg-slate-500/10 border-slate-500/30 text-slate-400'
@@ -922,8 +924,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                             )}
                                          </div>
 
-                                         {/* Delete Button (Admin/Dev Only) */}
-                                         {isAdmin && (
+                                         {/* Delete Button (Admin/Dev Only) - HIDE IN LIVE MODE */}
+                                         {isAdmin && dataSource === 'mock' && (
                                              <button 
                                                 onClick={() => handleDeleteTransaction(tx.id)}
                                                 disabled={deletingId === tx.id}
@@ -957,8 +959,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                         </span>
                                     </div>
                                     <div className="flex justify-end items-center gap-3 pt-2 border-t border-[#2b2d30] mt-2">
-                                         {/* Delete Button Mobile */}
-                                         {isAdmin && (
+                                         {/* Delete Button Mobile - HIDE IN LIVE MODE */}
+                                         {isAdmin && dataSource === 'mock' && (
                                              <button 
                                                 onClick={() => handleDeleteTransaction(tx.id)}
                                                 disabled={deletingId === tx.id}
@@ -1118,8 +1120,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 </div>
             )}
             
-            {/* Clear Data (Dev/Admin) */}
-            {isAdmin && (
+            {/* Clear Data (Dev/Admin) - HIDE IN LIVE MODE */}
+            {isAdmin && dataSource === 'mock' && (
                 <div className="flex justify-center pt-8 pb-12">
                     <button 
                         onClick={handleClearData}

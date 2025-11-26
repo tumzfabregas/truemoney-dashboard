@@ -251,8 +251,14 @@ app.delete('/api/transactions/:id', async (req, res) => {
     const id = req.params.id;
     try {
         if (isDbConnected()) {
+            // SAFETY LOCK: Disable deletion for Live Mode via API
+            return res.status(403).json({ error: 'Deletion is disabled in Live Mode for safety.' });
+            
+            /* 
+            // Old Logic (Disabled)
             const result = await TransactionModel.deleteOne({ id: id });
             if (result.deletedCount === 0) return res.status(404).json({ error: 'Transaction not found' });
+            */
         } else {
             memoryTransactions = memoryTransactions.filter(t => t.id !== id);
         }
@@ -265,7 +271,13 @@ app.delete('/api/transactions/:id', async (req, res) => {
 // Clear All Data
 app.delete('/api/transactions', async (req, res) => {
     if (isDbConnected()) {
+        // SAFETY LOCK: Disable Clear All for Live Mode via API
+        return res.status(403).json({ error: 'Clear Data is disabled in Live Mode for safety.' });
+        
+        /*
+        // Old Logic (Disabled)
         await TransactionModel.deleteMany({});
+        */
     } else {
         memoryTransactions = [];
     }
