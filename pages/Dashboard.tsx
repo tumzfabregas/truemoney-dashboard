@@ -36,6 +36,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [analysis, setAnalysis] = useState<string>('');
   const [analyzing, setAnalyzing] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -511,6 +512,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   const handleDeleteTransaction = async (id: string) => {
       if (confirm(t('confirm_delete_tx'))) {
+          setDeletingId(id);
           try {
               if (dataSource === 'live') {
                   await deleteTransactionApi(id);
@@ -521,6 +523,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       } catch (e) {
               console.error("Failed to delete transaction", e);
               alert("Failed to delete");
+          } finally {
+              setDeletingId(null);
           }
       }
   };
@@ -638,7 +642,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       for (let i = 29; i >= 0; i--) {
           const d = new Date(now);
           d.setDate(d.getDate() - i);
-          const dateStr = d.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit' });
+          const dateStr = d.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: '2-digit' });
           
           const txsInDay = transactions.filter(tx => {
               const txDate = new Date(tx.date);
@@ -922,10 +926,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                          {isAdmin && (
                                              <button 
                                                 onClick={() => handleDeleteTransaction(tx.id)}
-                                                className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                disabled={deletingId === tx.id}
+                                                className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
                                                 title="Delete"
                                              >
-                                                 <Trash2 size={16} />
+                                                 {deletingId === tx.id ? (
+                                                     <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin"></div>
+                                                 ) : (
+                                                     <Trash2 size={16} />
+                                                 )}
                                              </button>
                                          )}
                                     </div>
@@ -952,9 +961,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                          {isAdmin && (
                                              <button 
                                                 onClick={() => handleDeleteTransaction(tx.id)}
-                                                className="p-2 text-gray-500 hover:text-red-400"
+                                                disabled={deletingId === tx.id}
+                                                className="p-2 text-gray-500 hover:text-red-400 disabled:opacity-50"
                                              >
-                                                 <Trash2 size={16} />
+                                                 {deletingId === tx.id ? (
+                                                     <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin"></div>
+                                                 ) : (
+                                                     <Trash2 size={16} />
+                                                 )}
                                              </button>
                                          )}
 
