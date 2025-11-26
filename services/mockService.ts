@@ -75,7 +75,7 @@ const getStoredUsers = (): User[] => {
         if (stored) return JSON.parse(stored);
     } catch (e) { console.error(e); }
 
-    // Default Users (Dev, Owner, Staff_01)
+    // Default Users (Dev, Owner, Staff_01) - Matching API Logic
     const defaultUsers: User[] = [
         { id: '1', username: 'dev', password: 'dev', role: 'dev' },
         { id: '2', username: 'owner', password: 'owner', role: 'admin' },
@@ -120,8 +120,8 @@ export const updateUser = (id: string, updates: Partial<User>) => {
 export const deleteUser = (id: string) => {
     let users = getStoredUsers();
     const userToDelete = users.find(u => u.id === id);
-    if (userToDelete && (userToDelete.role === 'dev' || userToDelete.username.toLowerCase() === 'admin')) {
-         throw new Error('Cannot delete main admin/dev');
+    if (userToDelete && (userToDelete.role === 'dev' || userToDelete.username.toLowerCase() === 'owner')) {
+         throw new Error('Cannot delete dev/owner');
     }
     users = users.filter(u => u.id !== id);
     saveUsers(users);

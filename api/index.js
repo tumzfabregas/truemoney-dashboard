@@ -80,25 +80,47 @@ const SettingsModel = mongoose.models.Settings || mongoose.model('Settings', Set
 
 // --- Fallback Memory Data (Only used if no MongoDB) ---
 let memoryTransactions = [];
+// Strictly no fallback users to prevent ghost user bug. 
+// If DB is configured but fails, we should fail rather than allow 'admin' access from memory.
 let memoryUsers = []; 
 let memorySettings = {};
 
 // --- Helpers ---
 const isDbConnected = () => mongoose.connection.readyState === 1;
 
-// Seed Users if DB is empty
+// Seed Users if DB is empty or Reset Version triggered
+const RESET_VERSION = 'v1.1.12_reset_users'; // Change this string to force a wipe
+
 const ensureUsersExist = async () => {
     if (isDbConnected()) {
-        const count = await UserModel.countDocuments();
-        if (count === 0) {
-            console.log('🌱 Seeding default users...');
+        // Check for Reset Flag
+        const versionSetting = await SettingsModel.findOne({ key: 'db_version' });
+        
+        if (!versionSetting || versionSetting.value !== RESET_VERSION) {
+            console.log('🧹 Performing One-Time DB Reset for new User Set (Dev/Owner/Staff)...');
+            
+            // Wipe all users
+            await UserModel.deleteMany({});
+            
+            // Create fresh set
             await UserModel.create([
                 { id: Date.now().toString() + '1', username: 'dev', password: 'dev', role: 'dev' },
                 { id: Date.now().toString() + '2', username: 'owner', password: 'owner', role: 'admin' },
                 { id: Date.now().toString() + '3', username: 'staff_01', password: '1234', role: 'staff' }
             ]);
+
+            // Save reset flag
+            await SettingsModel.findOneAndUpdate({ key: 'db_version' }, { value: RESET_VERSION }, { upsert: true });
+            console.log('✅ Users Reset Complete');
+        } else {
+             // Fallback: If for some reason 0 users exist (e.g. manual delete), ensure dev exists
+             const count = await UserModel.countDocuments();
+             if (count === 0) {
+                 await UserModel.create({ id: Date.now().toString(), username: 'dev', password: 'dev', role: 'dev' });
+             }
         }
     } else if (memoryUsers.length === 0 && !MONGODB_URI) {
+        // Local Mock Mode defaults
         console.log('🌱 Seeding memory users (Local Mode)...');
         memoryUsers.push(
             { id: '1', username: 'dev', password: 'dev', role: 'dev' },
@@ -358,12 +380,12 @@ app.delete('/api/users/:id', async (req, res) => {
     try {
         if (isDbConnected()) {
             const userToCheck = await UserModel.findOne({ id: id }) || (mongoose.Types.ObjectId.isValid(id) ? await UserModel.findById(id) : null);
-            if (userToCheck && (userToCheck.role === 'dev' || userToCheck.username.toLowerCase() === 'admin')) return res.status(400).json({ error: 'Cannot delete admin/dev' });
+            if (userToCheck && (userToCheck.role === 'dev' || userToCheck.username.toLowerCase() === 'owner')) return res.status(400).json({ error: 'Cannot delete dev/owner' });
             
             if (userToCheck) await UserModel.deleteOne({ _id: userToCheck._id });
         } else {
             const user = memoryUsers.find(u => u.id === id);
-            if (user && (user.role === 'dev' || user.username.toLowerCase() === 'admin')) return res.status(400).json({ error: 'Cannot delete admin/dev' });
+            if (user && (user.role === 'dev' || user.username.toLowerCase() === 'owner')) return res.status(400).json({ error: 'Cannot delete dev/owner' });
             memoryUsers = memoryUsers.filter(u => u.id !== id);
         }
         res.json({ status: 'deleted' });

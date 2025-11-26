@@ -3,7 +3,7 @@ import { Transaction, User } from '../types';
 import { fetchTransactions, simulateIncomingWebhook, clearAllData, getUsers, addUser, updateUser, deleteUser } from '../services/mockService';
 import { fetchLiveTransactions, triggerLiveWebhook, clearLiveTransactions, fetchUsersApi, addUserApi, updateUserApi, deleteUserApi } from '../services/apiService';
 import { analyzeTransactions } from '../services/geminiService';
-import { RefreshCw, Sparkles, Server, Clipboard, Check, Clock, Power, Play, Code, Trash2, LayoutDashboard, Globe, Database, Users, Edit, Plus, X, Wallet, BellRing, History, Smartphone, LayoutGrid, ChevronLeft, ChevronRight, Search, Download, Calculator, FileSpreadsheet } from 'lucide-react';
+import { RefreshCw, Sparkles, Server, Clipboard, Check, Clock, Power, Play, Code, Trash2, LayoutDashboard, Globe, Database, Users, Edit, Plus, X, Wallet, BellRing, History, Smartphone, LayoutGrid, ChevronLeft, ChevronRight, Search, FileSpreadsheet, Calculator } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface DashboardProps {
@@ -143,7 +143,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       // Check DB status for both Dev and Admin
       if (isAdmin) {
           checkDbStatus();
-          // Fetch settings only for Dev (Admin shouldn't see token anyway)
+          // Fetch settings only for Dev (Admin shouldn't see token anymore)
           if (isDev) fetchSettings(); 
           const statusInterval = setInterval(checkDbStatus, 30000); 
           return () => clearInterval(statusInterval);
@@ -640,8 +640,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             </div>
             
             {/* Search & Summary Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className={`${isStaff ? 'md:col-span-3' : 'md:col-span-2'} bg-[#1E1F20] border border-[#444746] rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row gap-4 items-center`}>
+            <div className={`grid grid-cols-1 ${!isStaff ? 'md:grid-cols-3' : 'md:grid-cols-1'} gap-6`}>
+                <div className={`${!isStaff ? 'md:col-span-2' : ''} bg-[#1E1F20] border border-[#444746] rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row gap-4 items-center`}>
                     <div className="relative flex-1 w-full">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <Search size={18} className="text-gray-500" />
@@ -664,6 +664,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     )}
                 </div>
 
+                {/* Hide Total Today for Staff */}
                 {!isStaff && (
                     <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-5 shadow-lg flex items-center justify-between">
                         <div>
@@ -1027,7 +1028,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                                         <button 
                                             onClick={() => handleDeleteUser(u.id)}
                                             className="p-2.5 hover:bg-red-500/20 rounded-lg text-red-400 hover:text-red-300 transition-colors border border-transparent hover:border-red-500/30"
-                                            disabled={u.username.toLowerCase() === 'admin'}
+                                            disabled={u.username.toLowerCase() === 'owner'}
                                         >
                                             <Trash2 size={18} />
                                         </button>
