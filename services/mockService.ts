@@ -74,6 +74,12 @@ export const updateTransactionStatusMock = (id: string, status: string) => {
     throw new Error('Transaction not found');
 };
 
+export const deleteTransactionMock = (id: string) => {
+    let allData = getStoredData();
+    allData = allData.filter(t => t.id !== id);
+    saveData(allData);
+};
+
 export const clearAllData = () => {
     localStorage.removeItem(STORAGE_KEY);
     window.location.reload();

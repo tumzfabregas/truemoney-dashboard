@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Transaction, User } from '../types';
-import { fetchTransactions, simulateIncomingWebhook, clearAllData, getUsers, addUser, updateUser, deleteUser, updateTransactionStatusMock } from '../services/mockService';
-import { fetchLiveTransactions, triggerLiveWebhook, clearLiveTransactions, fetchUsersApi, addUserApi, updateUserApi, deleteUserApi, updateTransactionStatusApi } from '../services/apiService';
+import { fetchTransactions, simulateIncomingWebhook, clearAllData, getUsers, addUser, updateUser, deleteUser, updateTransactionStatusMock, deleteTransactionMock } from '../services/mockService';
+import { fetchLiveTransactions, triggerLiveWebhook, clearLiveTransactions, fetchUsersApi, addUserApi, updateUserApi, deleteUserApi, updateTransactionStatusApi, deleteTransactionApi } from '../services/apiService';
 import { analyzeTransactions } from '../services/geminiService';
-import { RefreshCw, Sparkles, Server, Clipboard, Check, Clock, Power, Play, Code, Trash2, LayoutDashboard, Globe, Database, Users, Edit, Plus, X, Wallet, BellRing, History, Smartphone, LayoutGrid, ChevronLeft, ChevronRight, Search, FileSpreadsheet, Calculator, Calendar, Volume2, VolumeX, BarChart3, Tag, CheckCircle2, AlertCircle, RefreshCcw } from 'lucide-react';
+import { RefreshCw, Sparkles, Server, Clipboard, Check, Clock, Power, Play, Code, Trash2, LayoutDashboard, Globe, Database, Users, Edit, Plus, X, Wallet, BellRing, History, Smartphone, LayoutGrid, ChevronLeft, ChevronRight, Search, FileSpreadsheet, Calculator, Calendar, Volume2, VolumeX, BarChart3, Tag, LockKeyhole } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
@@ -477,12 +477,24 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       }
   };
 
-  const handleStatusClick = (e: React.MouseEvent, id: string) => {
-      e.stopPropagation(); // Prevent triggering global click listener immediately
-      setActiveDropdown(activeDropdown === id ? null : id);
+  const handleStatusClick = (e: React.MouseEvent, tx: Transaction) => {
+      e.stopPropagation(); 
+      // Permissions check for opening dropdown
+      if (isStaff && tx.status !== 'normal') {
+          // Locked for staff: Cannot edit once changed from normal
+          return;
+      }
+      setActiveDropdown(activeDropdown === tx.id ? null : tx.id);
   };
 
   const handleStatusChange = async (id: string, newStatus: string) => {
+      // Staff Confirmation
+      if (isStaff) {
+          if (!confirm(t('confirm_status_change'))) {
+              return;
+          }
+      }
+
       try {
           if (dataSource === 'live') {
               await updateTransactionStatusApi(id, newStatus);
@@ -494,6 +506,22 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           setActiveDropdown(null);
       } catch (e) {
           console.error("Failed to update status", e);
+      }
+  };
+
+  const handleDeleteTransaction = async (id: string) => {
+      if (confirm(t('confirm_delete_tx'))) {
+          try {
+              if (dataSource === 'live') {
+                  await deleteTransactionApi(id);
+              } else {
+                  deleteTransactionMock(id);
+              }
+              setTransactions(prev => prev.filter(tx => tx.id !== id));
+      } catch (e) {
+              console.error("Failed to delete transaction", e);
+              alert("Failed to delete");
+          }
       }
   };
 
@@ -537,792 +565,706 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     }
   };
 
-  const formatPhoneNumber = (phoneNumber: string, forceShow: boolean = false) => {
-      if (!phoneNumber) return '-';
-      const cleaned = phoneNumber.replace(/\D/g, '');
-      const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
-      
-      // Always show full number for everyone as per request
-      if (match) {
-        return `${match[1]}-${match[2]}-${match[3]}`;
+  const formatPhoneNumber = (phone: string, isHeader: boolean = false) => {
+      if (!phone) return 'Unknown';
+      if (phone.length === 10) {
+          return `${phone.substring(0, 3)}-${phone.substring(3, 6)}-${phone.substring(6, 10)}`;
       }
-      return phoneNumber;
-  };
-
-  const getStatusColor = (status: string) => {
-      switch(status) {
-          case 'verified': return 'bg-green-500/20 text-green-400 border-green-500/30';
-          case 'issue': return 'bg-red-500/20 text-red-400 border-red-500/30';
-          case 'refund': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-          default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-      }
-  };
-
-  const getStatusLabel = (status: string) => {
-      switch(status) {
-          case 'verified': return t('status_verified');
-          case 'issue': return t('status_issue');
-          case 'refund': return t('status_refund');
-          default: return t('status_normal');
-      }
+      return phone;
   };
 
   // Filter & Pagination Logic
-  const filteredTransactions = transactions.filter(tx => 
-    tx.sender.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (tx.message || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    tx.amount.toString().includes(searchQuery)
-  );
+  const filteredTransactions = transactions.filter(tx => {
+    const query = searchQuery.toLowerCase();
+    const phone = tx.sender.toLowerCase();
+    const msg = (tx.message || '').toLowerCase();
+    const amount = tx.amount.toString();
+    return phone.includes(query) || msg.includes(query) || amount.includes(query);
+  });
 
-  // --- Total Calculation Logic ---
-  
-  // 1. Daily Total
+  // Calculate Daily & Monthly Totals
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const dailyTransactions = transactions.filter(tx => new Date(tx.date) >= today);
-  const totalTodayAmount = dailyTransactions.reduce((acc, curr) => acc + Number(curr.amount), 0);
-  const totalTodayCount = dailyTransactions.length;
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
 
-  // 2. Monthly Total (Current Month)
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  const monthlyTransactions = transactions.filter(tx => new Date(tx.date) >= startOfMonth);
-  const totalMonthAmount = monthlyTransactions.reduce((acc, curr) => acc + Number(curr.amount), 0);
-  const totalMonthCount = monthlyTransactions.length;
+  // Daily Total
+  const dailyTotalData = filteredTransactions.filter(tx => {
+      const txDate = new Date(tx.date);
+      return txDate.getDate() === today.getDate() && 
+             txDate.getMonth() === currentMonth && 
+             txDate.getFullYear() === currentYear &&
+             tx.amount > 0;
+  });
+  const totalDailyAmount = dailyTotalData.reduce((sum, tx) => sum + Number(tx.amount), 0);
+  const totalDailyCount = dailyTotalData.length;
 
-  // 3. Reports Data Preparation (Daily Chart)
-  const prepareChartData = () => {
-      const last30Days = [...Array(30)].map((_, i) => {
-          const d = new Date();
-          d.setDate(d.getDate() - (29 - i));
-          return d;
-      });
+  // Monthly Total
+  const monthlyTotalData = filteredTransactions.filter(tx => {
+      const txDate = new Date(tx.date);
+      return txDate.getMonth() === currentMonth && 
+             txDate.getFullYear() === currentYear &&
+             tx.amount > 0;
+  });
+  const totalMonthlyAmount = monthlyTotalData.reduce((sum, tx) => sum + Number(tx.amount), 0);
+  const totalMonthlyCount = monthlyTotalData.length;
 
-      return last30Days.map(day => {
-          const dayStr = day.toISOString().split('T')[0];
-          const txns = transactions.filter(tx => tx.date.startsWith(dayStr));
-          return {
-              date: day.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit' }),
-              amount: txns.reduce((sum, tx) => sum + Number(tx.amount), 0),
-              count: txns.length
-          };
-      });
-  };
-  const chartData = prepareChartData();
+  // Monthly History Data (Last 3 Months) for Report
+  const monthlyReportData = React.useMemo(() => {
+    const data = [];
+    for (let i = 0; i < 3; i++) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        const month = d.getMonth();
+        const year = d.getFullYear();
+        
+        const txsInMonth = transactions.filter(tx => {
+            const txDate = new Date(tx.date);
+            return txDate.getMonth() === month && txDate.getFullYear() === year && tx.amount > 0;
+        });
 
-  // 4. Reports Data Preparation (Monthly Table - Last 3 Months)
-  const prepareMonthlyStats = () => {
-      const months = [];
-      for (let i = 0; i < 3; i++) {
-          const d = new Date();
-          d.setMonth(d.getMonth() - i);
-          const monthKey = d.toISOString().slice(0, 7); // YYYY-MM
+        data.push({
+            name: d.toLocaleString('th-TH', { month: 'long', year: 'numeric' }),
+            total: txsInMonth.reduce((sum, tx) => sum + Number(tx.amount), 0),
+            count: txsInMonth.length
+        });
+    }
+    return data;
+  }, [transactions]);
+
+  // Daily Report Data (Last 30 Days)
+  const dailyReportData = React.useMemo(() => {
+      const data = [];
+      const now = new Date();
+      for (let i = 29; i >= 0; i--) {
+          const d = new Date(now);
+          d.setDate(d.getDate() - i);
+          const dateStr = d.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit' });
           
-          const txns = transactions.filter(tx => tx.date.startsWith(monthKey));
-          months.push({
-              monthName: d.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' }),
-              count: txns.length,
-              amount: txns.reduce((sum, tx) => sum + Number(tx.amount), 0)
+          const txsInDay = transactions.filter(tx => {
+              const txDate = new Date(tx.date);
+              return txDate.getDate() === d.getDate() && 
+                     txDate.getMonth() === d.getMonth() && 
+                     txDate.getFullYear() === d.getFullYear() && 
+                     tx.amount > 0;
+          });
+
+          data.push({
+              name: dateStr,
+              total: txsInDay.reduce((sum, tx) => sum + Number(tx.amount), 0),
+              count: txsInDay.length
           });
       }
-      return months;
-  };
-  const monthlyStats = prepareMonthlyStats();
+      return data;
+  }, [transactions]);
 
 
   const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
-  const displayedTransactions = filteredTransactions.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-
-  const backendCodeString = `// Backend Logic (api/index.js)...`.trim();
-
-  // Filter Users List: Admin cannot see Dev
-  const filteredUsersList = usersList.filter(u => {
-    if (user.role === 'admin' && u.role === 'dev') return false;
-    return true;
-  });
+  const paginatedTransactions = filteredTransactions.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 mt-4 sm:mt-10 font-sans pb-24 text-gray-200">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
-      {/* Header / Title Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
-        <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-                <Wallet className="text-orange-500" size={32} />
-                <span>TrueMoney <span className="text-orange-500 font-light hidden xs:inline">/ Dashboard</span></span>
-            </h1>
-            <p className="text-sm text-gray-400 mt-2 font-medium">{t('dashboard_subtitle')}</p>
+      {/* 1. Header Cards: Status & Actions */}
+      <div className="bg-[#1E1F20] p-6 rounded-3xl border border-[#444746] shadow-xl">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-6">
+            <div>
+                 <h2 className="text-2xl font-bold text-gray-100 flex items-center gap-3">
+                    <span className="bg-orange-500/10 p-2 rounded-xl border border-orange-500/20 text-orange-500">
+                        <LayoutDashboard size={24} />
+                    </span>
+                    {t('tab_dashboard')}
+                 </h2>
+                 <p className="text-gray-400 text-sm mt-1 ml-1">{t('dashboard_subtitle')}</p>
+            </div>
+
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+                 {/* Sound Toggle */}
+                 <button 
+                    onClick={toggleSound}
+                    className={`p-3 rounded-xl border transition-all ${soundEnabled ? 'bg-orange-500/10 border-orange-500/50 text-orange-400' : 'bg-[#2b2d30] border-[#444746] text-gray-500'}`}
+                    title={soundEnabled ? t('sound_on') : t('sound_off')}
+                 >
+                    {soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+                 </button>
+
+                 {/* Refresh & Auto */}
+                 <div className="flex bg-[#2b2d30] rounded-xl p-1 border border-[#444746] w-full sm:w-auto">
+                     <button 
+                        onClick={toggleAutoRefresh}
+                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${isAutoRefresh ? 'bg-green-500/10 text-green-400 shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}
+                     >
+                        <Power size={16} /> <span className="hidden sm:inline">{isAutoRefresh ? t('auto_on') : t('auto_off')}</span>
+                     </button>
+                     <button 
+                        onClick={handleManualRefresh}
+                        disabled={loading}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:bg-[#383a3e] hover:text-white transition-all disabled:opacity-50"
+                     >
+                        <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> <span className="hidden sm:inline">{t('refresh')}</span>
+                     </button>
+                 </div>
+            </div>
         </div>
 
-        {/* Navigation Tabs (Admin/Dev Only) */}
+        {/* Status Indicators */}
+        <div className="flex flex-col sm:flex-row gap-4">
+             {/* API Status Button */}
+             <div className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-2xl border transition-all ${
+                 dataSource === 'live' 
+                 ? 'bg-green-500/10 border-green-500/30 text-green-400' 
+                 : 'bg-slate-500/10 border-slate-500/30 text-slate-400'
+             }`}>
+                 {dataSource === 'live' ? <Globe size={20} /> : <Database size={20} />}
+                 <div className="flex flex-col items-start">
+                     <span className="text-xs font-bold uppercase tracking-wider opacity-70">{t('source')}</span>
+                     <span className="font-bold text-lg">
+                        {dataSource === 'live' ? (walletPhone ? `API : ${walletPhone}` : t('live')) : t('mock')}
+                     </span>
+                 </div>
+             </div>
+
+             {/* Balance Card (Visible only to Dev/Admin) */}
+             {isAdmin && (
+                 <div className="flex-1 flex items-center justify-center gap-4 px-6 py-4 rounded-2xl border border-[#444746] bg-[#2b2d30]">
+                     <div className="p-3 bg-orange-500/20 rounded-full text-orange-500 border border-orange-500/30">
+                         <Wallet size={24} />
+                     </div>
+                     <div className="flex flex-col">
+                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('wallet_balance')}</span>
+                         <span className="text-2xl font-bold text-white tracking-tight">
+                             {walletBalance ? `฿ ${walletBalance}` : '---'}
+                         </span>
+                     </div>
+                 </div>
+             )}
+        </div>
+      </div>
+
+      {/* 2. Navigation Tabs */}
+      <div className="flex overflow-x-auto pb-2 gap-2 scrollbar-hide">
+        <button onClick={() => setActiveTab('dashboard')} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === 'dashboard' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/50' : 'bg-[#1E1F20] text-gray-400 hover:bg-[#2b2d30] border border-[#444746]'}`}>
+            <LayoutDashboard size={16} /> {t('tab_dashboard')}
+        </button>
+        {/* Services: Dev Only */}
+        {isDev && (
+            <button onClick={() => setActiveTab('services')} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === 'services' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/50' : 'bg-[#1E1F20] text-gray-400 hover:bg-[#2b2d30] border border-[#444746]'}`}>
+                <LayoutGrid size={16} /> {t('tab_services')}
+            </button>
+        )}
+        {/* Reports: Admin/Dev Only */}
         {isAdmin && (
-            <div className="w-full md:w-auto flex bg-[#454545] p-1.5 rounded-xl border border-[#444746] shadow-lg overflow-x-auto no-scrollbar">
-                {[
-                    { id: 'dashboard', label: t('tab_dashboard'), icon: LayoutDashboard },
-                    { id: 'reports', label: t('tab_reports'), icon: BarChart3 },
-                    // Services Tab only for Dev now
-                    ...(isDev ? [{ id: 'services', label: t('tab_services'), icon: LayoutGrid }] : []),
-                    { id: 'users', label: t('tab_users'), icon: Users },
-                    ...(isDev ? [{ id: 'code', label: t('tab_code'), icon: Code }] : []),
-                ].map((tab) => (
-                    <button 
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
-                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 whitespace-nowrap ${
-                            activeTab === tab.id 
-                            ? 'bg-orange-600 text-white shadow-md shadow-orange-900/40' 
-                            : 'text-gray-400 hover:text-white hover:bg-[#373737]'
-                        }`}
-                    >
-                        <tab.icon size={18} /> <span className="hidden xs:inline">{tab.label}</span>
-                    </button>
-                ))}
-            </div>
+            <button onClick={() => setActiveTab('reports')} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === 'reports' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/50' : 'bg-[#1E1F20] text-gray-400 hover:bg-[#2b2d30] border border-[#444746]'}`}>
+                <BarChart3 size={16} /> {t('tab_reports')}
+            </button>
+        )}
+        {/* Users: Admin/Dev Only */}
+        {isAdmin && (
+            <button onClick={() => setActiveTab('users')} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === 'users' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/50' : 'bg-[#1E1F20] text-gray-400 hover:bg-[#2b2d30] border border-[#444746]'}`}>
+                <Users size={16} /> {t('tab_users')}
+            </button>
+        )}
+        {/* Code: Dev Only */}
+        {isDev && (
+            <button onClick={() => setActiveTab('code')} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${activeTab === 'code' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/50' : 'bg-[#1E1F20] text-gray-400 hover:bg-[#2b2d30] border border-[#444746]'}`}>
+                <Code size={16} /> {t('tab_code')}
+            </button>
         )}
       </div>
 
+      {/* 3. Main Content Area */}
+      
+      {/* DASHBOARD TAB */}
       {activeTab === 'dashboard' && (
         <div className="space-y-6">
             
-            {/* Control Bar */}
-            <div className="bg-[#454545] border border-[#444746] rounded-2xl p-5 shadow-lg flex flex-col md:flex-row justify-between items-stretch md:items-center gap-5">
-                
-                {/* Data Source Toggle & Balance */}
-                <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
-                     <span className="text-xs font-bold text-gray-400 uppercase tracking-widest hidden md:inline">{t('source')}</span>
-                     <div className="w-full sm:w-auto flex bg-[#373737] p-1.5 rounded-xl border border-[#444746] shadow-inner">
-                         {isDev ? (
-                            <>
-                                <button 
-                                    onClick={() => { setDataSource('mock'); setCurrentPage(1); }}
-                                    className={`flex-1 sm:flex-none justify-center flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all uppercase tracking-wide ${dataSource === 'mock' ? 'bg-[#444746] text-white shadow-md' : 'text-gray-500 hover:text-gray-300'}`}
-                                >
-                                    <Database size={14} /> {t('mock')}
-                                </button>
-                                <button 
-                                    onClick={() => { setDataSource('live'); setCurrentPage(1); }}
-                                    className={`flex-1 sm:flex-none justify-center flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all uppercase tracking-wide ${dataSource === 'live' ? 'bg-green-800 text-green-100 border border-green-700 shadow-md' : 'text-gray-500 hover:text-gray-300'}`}
-                                >
-                                    <Globe size={14} /> 
-                                    {dataSource === 'live' && walletPhone ? `API : ${walletPhone}` : t('live')}
-                                </button>
-                            </>
-                         ) : (
-                             <div className="w-full flex justify-center items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg bg-green-900/30 text-green-400 border border-green-800 uppercase tracking-wide">
-                                 <Globe size={14} /> 
-                                 {walletPhone ? `API : ${walletPhone}` : t('live')}
-                             </div>
-                         )}
-                     </div>
-                     
-                     {/* Wallet Balance Display (Admin Only) */}
-                     {dataSource === 'live' && walletBalance && isAdmin && (
-                        <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-4 px-5 py-3 sm:py-2 rounded-xl bg-[#373737] border border-[#444746] shadow-inner mt-1 sm:mt-0">
-                            <span className="text-xs text-gray-400 font-bold uppercase sm:hidden">Balance</span>
-                            <div className="flex items-center gap-2">
-                                <Wallet size={18} className="text-orange-500" />
-                                <span className="text-white font-mono font-bold text-sm tracking-wide">฿ {walletBalance}</span>
+            {/* Summary Cards: Daily & Monthly */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 {/* Daily Total (Admin/Dev Only) */}
+                 {isAdmin ? (
+                     <div className="bg-[#1E1F20] p-6 rounded-3xl border border-[#444746] relative overflow-hidden group hover:border-orange-500/30 transition-all">
+                        <div className="absolute right-0 top-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <Calendar size={100} />
+                        </div>
+                        <div className="relative z-10">
+                            <span className="text-gray-400 text-sm font-bold uppercase tracking-wider">{t('summary_today')}</span>
+                            <div className="text-xs text-orange-400 font-medium mt-1 mb-2">{t('time_range_today')}</div>
+                            <div className="flex items-baseline gap-2 mt-1">
+                                <span className="text-3xl font-bold text-white tracking-tight">฿ {totalDailyAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</span>
+                            </div>
+                            <div className="mt-4 flex items-center gap-2 text-sm text-gray-400 font-medium bg-[#2b2d30] w-fit px-3 py-1 rounded-full border border-[#444746]">
+                                <Tag size={14} className="text-orange-500"/> {totalDailyCount} {t('entries')}
                             </div>
                         </div>
-                     )}
-                </div>
+                     </div>
+                 ) : (
+                     // Search Bar Full Width for Staff
+                     <div className="md:col-span-2 bg-[#1E1F20] p-6 rounded-3xl border border-[#444746] flex flex-col justify-center">
+                         <h3 className="text-lg font-bold text-white mb-2">{t('search')}</h3>
+                         <div className="relative">
+                            <input 
+                                type="text" 
+                                placeholder={t('search_placeholder')}
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full bg-[#2b2d30] border border-[#444746] text-white px-5 py-4 pl-12 rounded-xl focus:outline-none focus:border-orange-500 transition-all placeholder:text-gray-500"
+                            />
+                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500" size={20} />
+                         </div>
+                     </div>
+                 )}
 
-                {/* Status & Actions */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                    <div className="hidden lg:flex items-center gap-2 text-gray-300 bg-[#373737] px-4 py-2 rounded-xl border border-[#444746] shadow-inner">
-                        <Clock size={16} className="text-orange-500"/> 
-                        <span className="text-sm font-mono font-medium">{lastUpdated.toLocaleTimeString('th-TH')}</span>
-                    </div>
-
-                    <div className="grid grid-cols-3 sm:flex gap-3">
-                        <button 
-                            onClick={toggleSound}
-                            className={`flex justify-center items-center gap-2 px-3 py-2.5 sm:py-2 rounded-xl border transition-all text-xs font-bold uppercase tracking-wide ${soundEnabled ? 'bg-orange-500/20 border-orange-500/40 text-orange-400' : 'bg-[#373737] border-[#444746] text-gray-500'}`}
-                            title={soundEnabled ? t('sound_on') : t('sound_off')}
-                        >
-                            {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
-                        </button>
-
-                        <button 
-                            onClick={toggleAutoRefresh}
-                            className={`flex justify-center items-center gap-2 px-4 py-2.5 sm:py-2 rounded-xl border transition-all text-xs font-bold uppercase tracking-wide ${isAutoRefresh ? 'bg-green-900/20 border-green-800 text-green-400' : 'bg-[#373737] border-[#444746] text-gray-500'}`}
-                        >
-                            <Power size={14} /> {isAutoRefresh ? t('auto_on') : t('auto_off')}
-                        </button>
-
-                        <button 
-                            onClick={handleManualRefresh}
-                            disabled={loading}
-                            className="flex justify-center items-center gap-2 px-4 py-2.5 sm:py-2 rounded-xl bg-[#373737] hover:bg-[#505356] text-white transition-all text-xs font-bold border border-[#505356] shadow-sm uppercase tracking-wide"
-                        >
-                            <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> {t('refresh')}
-                        </button>
-                    </div>
-
-                    {isAdmin && (
-                        <button 
-                            onClick={handleClearData}
-                            className="flex justify-center items-center gap-2 px-4 py-2.5 sm:py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition-all text-xs font-bold uppercase tracking-wide"
-                        >
-                            <Trash2 size={14} /> {t('clear')}
-                        </button>
-                    )}
-                </div>
-            </div>
-            
-            {/* Search & Summary Section */}
-            <div className={`grid grid-cols-1 ${!isStaff ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-6`}>
-                <div className={`${!isStaff ? '' : ''} bg-[#454545] border border-[#444746] rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row gap-4 items-center`}>
-                    <div className="relative flex-1 w-full">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Search size={18} className="text-gray-500" />
+                 {/* Monthly Total (Everyone sees this or maybe just Admin? Keeping consistent with request "Staff sees Search full width") */}
+                 {isAdmin && (
+                     <div className="bg-[#1E1F20] p-6 rounded-3xl border border-[#444746] relative overflow-hidden group hover:border-orange-500/30 transition-all">
+                        <div className="absolute right-0 top-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <FileSpreadsheet size={100} />
                         </div>
+                        <div className="relative z-10">
+                            <span className="text-gray-400 text-sm font-bold uppercase tracking-wider">{t('summary_month')}</span>
+                            <div className="text-3xl font-bold text-white mt-2 tracking-tight">฿ {totalMonthlyAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</div>
+                            <div className="mt-4 flex items-center gap-2 text-sm text-gray-400 font-medium bg-[#2b2d30] w-fit px-3 py-1 rounded-full border border-[#444746]">
+                                <Tag size={14} className="text-orange-500"/> {totalMonthlyCount} {t('entries')}
+                            </div>
+                        </div>
+                     </div>
+                 )}
+            </div>
+
+            {/* Filter & Export Bar */}
+            <div className="flex flex-col sm:flex-row gap-4 items-center">
+                {/* Search (If Admin, show here. If Staff, already showed above) */}
+                {isAdmin && (
+                    <div className="relative w-full">
                         <input 
                             type="text" 
-                            value={searchQuery}
-                            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                            className="w-full bg-[#373737] border border-[#444746] text-gray-200 text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors shadow-inner placeholder:text-gray-500"
                             placeholder={t('search_placeholder')}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-[#1E1F20] border border-[#444746] text-white px-5 py-3 pl-12 rounded-xl focus:outline-none focus:border-orange-500 transition-all placeholder:text-gray-500"
                         />
+                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500" size={20} />
                     </div>
-                    {isAdmin && (
-                        <button 
-                            onClick={handleExportCSV}
-                            className="w-full sm:w-auto flex justify-center items-center gap-2 px-5 py-3 rounded-xl bg-[#373737] hover:bg-[#444746] text-gray-300 border border-[#444746] transition-all text-sm font-bold shadow-sm"
-                        >
-                            <FileSpreadsheet size={18} className="text-green-500"/> {t('export_csv')}
-                        </button>
+                )}
+                
+                {/* Export Button */}
+                <button 
+                    onClick={handleExportCSV}
+                    disabled={filteredTransactions.length === 0}
+                    className="w-full sm:w-auto px-6 py-3 bg-[#1E1F20] hover:bg-[#2b2d30] border border-[#444746] text-gray-300 rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 hover:text-white hover:border-gray-500"
+                >
+                    <FileSpreadsheet size={18} /> <span className="whitespace-nowrap">{t('export_csv')}</span>
+                </button>
+            </div>
+
+            {/* Transactions List */}
+            <div className="bg-[#1E1F20] rounded-3xl border border-[#444746] overflow-hidden shadow-xl min-h-[400px]">
+                {/* Header Row (Desktop) */}
+                <div className="hidden md:grid grid-cols-12 gap-4 p-5 bg-[#2b2d30] border-b border-[#444746] text-gray-400 font-bold text-xs uppercase tracking-wider">
+                    <div className="col-span-2">{t('date')}</div>
+                    <div className="col-span-3">{t('sender')}</div>
+                    <div className="col-span-2 text-right">{t('amount')}</div>
+                    <div className="col-span-3">{t('message')}</div>
+                    <div className="col-span-2 text-center">{t('status')}</div>
+                </div>
+
+                <div className="divide-y divide-[#2b2d30]">
+                    {paginatedTransactions.length > 0 ? (
+                        paginatedTransactions.map((tx) => (
+                            <div key={tx.id} className="group hover:bg-[#2b2d30]/50 transition-colors">
+                                {/* Desktop View */}
+                                <div className="hidden md:grid grid-cols-12 gap-4 p-5 items-center">
+                                    <div className="col-span-2 text-gray-400 text-sm font-medium">{formatDate(tx.date)}</div>
+                                    <div className="col-span-3 font-bold text-white text-base tracking-wide flex items-center gap-2">
+                                        <Smartphone size={16} className="text-gray-600"/>
+                                        {formatPhoneNumber(tx.sender)}
+                                    </div>
+                                    <div className="col-span-2 text-right font-bold text-green-400 text-base">
+                                        + {tx.amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                                    </div>
+                                    <div className="col-span-3 text-gray-400 text-sm truncate pr-4">{tx.message}</div>
+                                    <div className="col-span-2 flex items-center justify-end gap-2">
+                                         {/* Status Badge */}
+                                         <div className="relative">
+                                            <button 
+                                                onClick={(e) => handleStatusClick(e, tx)}
+                                                disabled={isStaff && tx.status !== 'normal'}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border transition-all cursor-pointer flex items-center gap-1 ${
+                                                    tx.status === 'verified' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
+                                                    tx.status === 'issue' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
+                                                    tx.status === 'refund' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' :
+                                                    'bg-gray-700/50 border-gray-600 text-gray-400 hover:bg-gray-700'
+                                                } ${(isStaff && tx.status !== 'normal') ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                            >
+                                                {t(`status_${tx.status || 'normal'}`)} 
+                                                {(isStaff && tx.status !== 'normal') && <LockKeyhole size={10} />}
+                                            </button>
+                                            
+                                            {/* Dropdown */}
+                                            {activeDropdown === tx.id && (
+                                                <div className="absolute top-full right-0 mt-2 w-32 bg-[#353639] border border-[#444746] rounded-xl shadow-2xl z-50 overflow-hidden py-1 animate-in fade-in zoom-in-95 duration-200">
+                                                    {['normal', 'verified', 'issue', 'refund'].map(status => (
+                                                        <button
+                                                            key={status}
+                                                            onClick={() => handleStatusChange(tx.id, status)}
+                                                            className={`w-full text-left px-4 py-2 text-xs font-medium hover:bg-[#444746] transition-colors ${tx.status === status ? 'text-orange-500' : 'text-gray-300'}`}
+                                                        >
+                                                            {t(`status_${status}`)}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                         </div>
+
+                                         {/* Delete Button (Admin/Dev Only) */}
+                                         {isAdmin && (
+                                             <button 
+                                                onClick={() => handleDeleteTransaction(tx.id)}
+                                                className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                title="Delete"
+                                             >
+                                                 <Trash2 size={16} />
+                                             </button>
+                                         )}
+                                    </div>
+                                </div>
+
+                                {/* Mobile View (Card Layout) */}
+                                <div className="md:hidden p-5 space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <Smartphone size={16} className="text-gray-600"/>
+                                            <span className="font-bold text-white text-base tracking-wide">{formatPhoneNumber(tx.sender)}</span>
+                                        </div>
+                                        <span className="font-bold text-green-400 text-base">+ {tx.amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-gray-500 flex items-center gap-2">
+                                            {formatDate(tx.date)} 
+                                            <span className="w-1 h-1 rounded-full bg-gray-600"></span> 
+                                            <span className="text-gray-300 max-w-[150px] truncate">{tx.message}</span>
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-end items-center gap-3 pt-2 border-t border-[#2b2d30] mt-2">
+                                         {/* Delete Button Mobile */}
+                                         {isAdmin && (
+                                             <button 
+                                                onClick={() => handleDeleteTransaction(tx.id)}
+                                                className="p-2 text-gray-500 hover:text-red-400"
+                                             >
+                                                 <Trash2 size={16} />
+                                             </button>
+                                         )}
+
+                                         {/* Status Badge Mobile */}
+                                         <div className="relative">
+                                            <button 
+                                                onClick={(e) => handleStatusClick(e, tx)}
+                                                disabled={isStaff && tx.status !== 'normal'}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border flex items-center gap-1 ${
+                                                    tx.status === 'verified' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
+                                                    tx.status === 'issue' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
+                                                    tx.status === 'refund' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' :
+                                                    'bg-gray-700/50 border-gray-600 text-gray-400'
+                                                } ${(isStaff && tx.status !== 'normal') ? 'opacity-70' : ''}`}
+                                            >
+                                                {t(`status_${tx.status || 'normal'}`)}
+                                                {(isStaff && tx.status !== 'normal') && <LockKeyhole size={10} />}
+                                            </button>
+                                            {activeDropdown === tx.id && (
+                                                <div className="absolute bottom-full right-0 mb-2 w-32 bg-[#353639] border border-[#444746] rounded-xl shadow-2xl z-50 overflow-hidden py-1">
+                                                    {['normal', 'verified', 'issue', 'refund'].map(status => (
+                                                        <button
+                                                            key={status}
+                                                            onClick={() => handleStatusChange(tx.id, status)}
+                                                            className={`w-full text-left px-4 py-2 text-xs font-medium active:bg-[#444746] ${tx.status === status ? 'text-orange-500' : 'text-gray-300'}`}
+                                                        >
+                                                            {t(`status_${status}`)}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="p-10 text-center flex flex-col items-center justify-center text-gray-500">
+                            <History size={48} className="mb-4 opacity-20" />
+                            <p>{t('no_transactions')}</p>
+                            {dataSource === 'live' && <p className="text-xs mt-2 text-gray-600">{t('waiting_webhook')}</p>}
+                        </div>
                     )}
                 </div>
 
-                {/* Summary Cards (Daily & Monthly) - Hidden for Staff */}
-                {!isStaff && (
-                    <div className="grid grid-cols-2 gap-4">
-                        {/* Daily Total */}
-                        <div className="bg-[#454545] border border-[#444746] rounded-2xl p-4 shadow-lg flex flex-col justify-between relative overflow-hidden">
-                             <div className="flex justify-between items-start z-10">
-                                 <div>
-                                     <span className="text-[10px] font-bold text-orange-500 uppercase tracking-widest block">{t('summary_today')}</span>
-                                     <span className="text-[9px] text-gray-400 font-medium block mb-1">{t('time_range_today')}</span>
-                                     <div className="text-3xl font-bold text-white mt-1 font-mono tracking-wide">฿ {totalTodayAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</div>
-                                 </div>
-                                 <div className="bg-orange-500/10 p-2 rounded-lg text-orange-500">
-                                     <Calculator size={16} />
-                                 </div>
-                             </div>
-                             <div className="mt-2 text-[10px] text-gray-400 font-medium z-10">
-                                 {totalTodayCount} {t('tx_count')}
-                             </div>
-                             {/* Decorative BG */}
-                             <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-orange-500/5 rounded-full blur-xl"></div>
-                        </div>
-
-                        {/* Monthly Total */}
-                        <div className="bg-[#454545] border border-[#444746] rounded-2xl p-4 shadow-lg flex flex-col justify-between relative overflow-hidden">
-                             <div className="flex justify-between items-start z-10">
-                                 <div>
-                                     <span className="text-[10px] font-bold text-orange-500 uppercase tracking-widest block">{t('summary_month')}</span>
-                                     <div className="text-3xl font-bold text-white mt-1 font-mono tracking-wide pt-4">฿ {totalMonthAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</div>
-                                 </div>
-                                 <div className="bg-blue-500/10 p-2 rounded-lg text-blue-500">
-                                     <Calendar size={16} />
-                                 </div>
-                             </div>
-                             <div className="mt-2 text-[10px] text-gray-400 font-medium z-10">
-                                 {totalMonthCount} {t('tx_count')}
-                             </div>
-                             {/* Decorative BG */}
-                             <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-blue-500/5 rounded-full blur-xl"></div>
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div className="p-4 bg-[#1E1F20] border-t border-[#444746] flex justify-between items-center">
+                        <span className="text-xs text-gray-500 font-medium">
+                            {t('page')} {currentPage} {t('of')} {totalPages}
+                        </span>
+                        <div className="flex gap-2">
+                            <button 
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="p-2 rounded-lg bg-[#2b2d30] border border-[#444746] text-gray-400 disabled:opacity-30 hover:bg-[#383a3e]"
+                            >
+                                <ChevronLeft size={16} />
+                            </button>
+                            <button 
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="p-2 rounded-lg bg-[#2b2d30] border border-[#444746] text-gray-400 disabled:opacity-30 hover:bg-[#383a3e]"
+                            >
+                                <ChevronRight size={16} />
+                            </button>
                         </div>
                     </div>
                 )}
             </div>
-
-            {/* Main Table Card */}
-            <div className="bg-[#454545] border border-[#444746] rounded-2xl overflow-hidden shadow-xl">
-                {/* Desktop Table Header */}
-                <div className="hidden md:grid grid-cols-12 gap-6 p-5 bg-[#373737] border-b border-[#444746] text-sm font-bold text-orange-500 uppercase tracking-widest">
-                    <div className="col-span-3">{t('sender')}</div>
-                    <div className="col-span-2 text-right">{t('amount')}</div>
-                    <div className="col-span-2 text-center">{t('date')}</div>
-                    <div className="col-span-2">{t('status')}</div>
-                    <div className="col-span-3">{t('message')}</div>
-                </div>
-
-                {/* Table Body */}
-                <div className="relative min-h-[400px]">
-                    {loading && !isAutoRefresh && (
-                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#454545]/50 backdrop-blur-sm">
-                            <RefreshCw className="animate-spin text-orange-500" size={40} />
-                        </div>
-                    )}
-
-                    {displayedTransactions.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-80 text-gray-500">
-                            <div className="bg-[#373737] p-5 rounded-full mb-4 border border-[#444746] shadow-inner">
-                                <History size={40} />
-                            </div>
-                            <span className="font-semibold text-lg text-gray-400">{t('no_transactions')}</span>
-                            {searchQuery && <span className="text-sm mt-1 text-orange-400">"{searchQuery}"</span>}
-                            {!searchQuery && <span className="text-sm mt-1 opacity-70">{t('waiting_webhook')}</span>}
-                        </div>
-                    ) : (
-                        <div className="divide-y divide-[#444746]">
-                            {displayedTransactions.map((tx) => (
-                                <React.Fragment key={tx.id}>
-                                    {/* Desktop Row */}
-                                    <div className="hidden md:grid grid-cols-12 gap-6 p-5 items-center hover:bg-[#373737] transition-colors group">
-                                        <div className="col-span-3 flex items-center gap-4">
-                                            <span className="text-lg font-semibold text-white font-mono tracking-wide">
-                                                {formatPhoneNumber(tx.sender)}
-                                            </span>
-                                        </div>
-                                        <div className="col-span-2 text-right">
-                                            <span className="inline-block px-3 py-1.5 rounded-lg bg-green-500/10 text-green-400 border border-green-500/20 text-lg font-bold font-mono shadow-sm">
-                                                +{tx.amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
-                                            </span>
-                                        </div>
-                                        <div className="col-span-2 text-center text-sm text-orange-50 font-mono">
-                                            {formatDate(tx.date)}
-                                        </div>
-                                        <div className="col-span-2">
-                                            <div className="relative">
-                                                <button 
-                                                    onClick={(e) => handleStatusClick(e, tx.id)}
-                                                    className={`w-full px-3 py-1.5 rounded-lg border text-xs font-bold uppercase tracking-wide flex items-center justify-between ${getStatusColor(tx.status || 'normal')}`}
-                                                >
-                                                    {getStatusLabel(tx.status || 'normal')}
-                                                    {isAdmin && <Tag size={12} className="opacity-50" />}
-                                                </button>
-                                                {isAdmin && activeDropdown === tx.id && (
-                                                    <div className="absolute top-full left-0 w-full bg-[#2b2d30] border border-[#444746] rounded-lg shadow-xl z-20 mt-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-                                                        {['normal', 'verified', 'issue', 'refund'].map(s => (
-                                                            <button 
-                                                                key={s}
-                                                                onClick={() => handleStatusChange(tx.id, s)}
-                                                                className={`w-full text-left px-4 py-2 text-xs font-bold hover:bg-[#444746] ${getStatusColor(s)} border-0`}
-                                                            >
-                                                                {getStatusLabel(s)}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="col-span-3 text-sm text-orange-50 truncate group-hover:text-white transition-colors">
-                                            {tx.message}
-                                        </div>
-                                    </div>
-
-                                    {/* Mobile Card Row */}
-                                    <div className="md:hidden p-5 flex flex-col gap-2 hover:bg-[#373737] transition-colors border-b border-[#444746] last:border-0">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-xl font-bold text-white font-mono tracking-wide">
-                                                {formatPhoneNumber(tx.sender)}
-                                            </span>
-                                            <span className="px-3 py-1 rounded-lg bg-green-500/10 text-green-400 border border-green-500/20 text-xl font-bold font-mono">
-                                                +{tx.amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between items-center mt-1">
-                                            <span className="text-sm text-orange-50 font-mono">{formatDate(tx.date)}</span>
-                                            <div className="relative">
-                                                <button 
-                                                    onClick={(e) => handleStatusClick(e, tx.id)}
-                                                    className={`px-3 py-1 rounded-lg border text-[10px] font-bold uppercase tracking-wide ${getStatusColor(tx.status || 'normal')}`}
-                                                >
-                                                    {getStatusLabel(tx.status || 'normal')}
-                                                </button>
-                                                {isAdmin && activeDropdown === tx.id && (
-                                                    <div className="absolute right-0 bottom-full mb-1 w-32 bg-[#2b2d30] border border-[#444746] rounded-lg shadow-xl z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-                                                        {['normal', 'verified', 'issue', 'refund'].map(s => (
-                                                            <button 
-                                                                key={s}
-                                                                onClick={() => handleStatusChange(tx.id, s)}
-                                                                className={`w-full text-left px-4 py-2 text-xs font-bold hover:bg-[#444746] ${getStatusColor(s)} border-0`}
-                                                            >
-                                                                {getStatusLabel(s)}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                        {tx.message && (
-                                            <div className="text-sm text-orange-50 truncate opacity-80 pt-1">
-                                                {tx.message}
-                                            </div>
-                                        )}
-                                    </div>
-                                </React.Fragment>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                {/* Pagination Footer */}
-                <div className="p-5 border-t border-[#444746] bg-[#373737] flex flex-col sm:flex-row justify-between items-center gap-5">
-                    <div className="text-sm text-gray-400 text-center sm:text-left font-medium">
-                        {t('showing')} <span className="text-white">{displayedTransactions.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}</span> {t('to')} <span className="text-white">{Math.min(currentPage * ITEMS_PER_PAGE, filteredTransactions.length)}</span> {t('of')} <span className="text-white">{filteredTransactions.length}</span> {t('entries')}
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                        <button 
-                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            disabled={currentPage === 1 || loading}
-                            className="p-2.5 rounded-lg bg-[#444746] border border-[#505356] text-gray-400 hover:text-white hover:bg-[#505356] disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
-                        >
-                            <ChevronLeft size={18} />
-                        </button>
-                        
-                        <div className="px-4 py-2 rounded-lg bg-[#444746] border border-[#505356] text-sm font-bold font-mono text-gray-200 shadow-inner">
-                            {t('page')} {currentPage} / {Math.max(totalPages, 1)}
-                        </div>
-
-                        <button 
-                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                            disabled={currentPage >= totalPages || loading}
-                            className="p-2.5 rounded-lg bg-[#444746] border border-[#505356] text-gray-400 hover:text-white hover:bg-[#505356] disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
-                        >
-                            <ChevronRight size={18} />
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Admin Tools Section (Only for Dev) */}
+            
+            {/* Configuration Section (Dev Only) */}
             {isDev && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-10">
-                    
-                    {/* Left Panel: Configuration */}
-                    <div className="bg-[#454545] border border-[#444746] rounded-2xl p-6 shadow-xl">
-                        <h3 className="text-sm font-bold text-orange-500 uppercase tracking-widest mb-6 flex items-center gap-3">
-                            <Server size={18} /> {t('config_sim')}
-                        </h3>
-
-                        <div className="space-y-6">
-                            {/* Simulator */}
-                            <div className="bg-[#373737] p-6 rounded-xl border border-[#444746] shadow-inner">
-                                <label className="text-xs text-gray-400 font-bold uppercase mb-3 block tracking-wide">{t('simulator')}</label>
-                                <button 
-                                    onClick={handleSimulateWebhook}
-                                    className="w-full flex items-center justify-center gap-3 bg-orange-600 hover:bg-orange-500 text-white text-sm font-bold py-3.5 rounded-xl shadow-lg shadow-orange-900/40 transition-all active:scale-98"
-                                >
-                                    <Play size={18} fill="currentColor" /> {t('simulate_btn')}
-                                </button>
-                                <p className="text-[11px] text-gray-500 mt-3 text-center font-medium">
-                                    {t('simulate_desc')} {dataSource === 'live' ? 'Real API' : 'Mock Store'}.
-                                </p>
-                            </div>
-
-                            {/* Setup Info */}
-                            <div className="bg-[#373737] p-6 rounded-xl border border-[#444746] shadow-inner">
-                                <div className="flex justify-between items-center mb-3">
-                                    <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">{t('setup_info')}</label>
-                                    <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide ${dbStatus.includes('Connected') ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
-                                        {dbStatus}
-                                    </span>
-                                </div>
-                                
-                                <div className="flex gap-3 mb-5">
-                                    <div className="flex-1 bg-[#2b2d30] border border-[#444746] rounded-xl px-4 py-3 text-xs font-mono text-gray-300 overflow-hidden whitespace-nowrap text-ellipsis shadow-inner">
-                                        {dataSource === 'live' ? `${currentOrigin}/api/webhook/truemoney` : 'Switch to Live Mode to see URL'}
-                                    </div>
-                                    <button onClick={handleCopyEndpoint} className="bg-[#444746] hover:bg-[#505356] text-gray-300 p-3 rounded-xl border border-[#505356] transition-colors shadow-sm">
-                                        {copied ? <Check size={18} className="text-green-500"/> : <Clipboard size={18}/>}
-                                    </button>
-                                </div>
-
-                                <div className="pt-4 border-t border-[#444746] space-y-4">
-                                    {/* Verification Secret */}
-                                    <div>
-                                        <label className="text-[10px] text-gray-400 font-bold uppercase mb-2 block tracking-wide">{t('verification_secret')}</label>
-                                        <div className="flex flex-col sm:flex-row gap-3">
-                                            <input 
-                                                type="text" 
-                                                value={verificationSecret}
-                                                onChange={(e) => { setVerificationSecret(e.target.value); setIsVerified(false); }}
-                                                placeholder={t('verification_placeholder')}
-                                                className="flex-1 bg-[#2b2d30] border border-[#444746] text-sm text-gray-200 px-4 py-2.5 rounded-xl focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors font-mono shadow-inner placeholder:text-gray-500"
-                                            />
-                                            <button 
-                                                onClick={handleSaveSecret}
-                                                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 uppercase tracking-wide ${isVerified ? 'bg-green-600 text-white shadow-md shadow-green-900/40' : 'bg-[#444746] hover:bg-[#505356] text-white'}`}
-                                            >
-                                                {isVerified ? <Check size={16} /> : t('save')}
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Service Token Input */}
-                                    <div>
-                                        <label className="text-[10px] text-gray-400 font-bold uppercase mb-2 block tracking-wide">{t('service_token')}</label>
-                                        <div className="flex flex-col sm:flex-row gap-3">
-                                            <input 
-                                                type="text" 
-                                                value={serviceToken}
-                                                onChange={(e) => setServiceToken(e.target.value)}
-                                                placeholder={t('service_token_placeholder')}
-                                                className="flex-1 bg-[#2b2d30] border border-[#444746] text-sm text-gray-200 px-4 py-2.5 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors font-mono shadow-inner placeholder:text-gray-500"
-                                            />
-                                            <button 
-                                                onClick={handleSaveServiceToken}
-                                                className="px-4 py-2.5 bg-[#444746] hover:bg-[#505356] text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 uppercase tracking-wide"
-                                            >
-                                                {t('save')}
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                </div>
-                            </div>
-                        </div>
+                <div className="bg-[#1E1F20] rounded-3xl border border-[#444746] overflow-hidden">
+                    <div className="p-6 border-b border-[#444746] flex items-center gap-3">
+                         <div className="p-2 bg-purple-500/10 rounded-lg text-purple-400 border border-purple-500/20"><Server size={20} /></div>
+                         <h3 className="text-lg font-bold text-gray-100">{t('config_sim')}</h3>
                     </div>
-
-                    {/* Right Panel: Tester & AI */}
-                    <div className="bg-[#454545] border border-[#444746] rounded-2xl p-6 shadow-xl">
-                        <h3 className="text-sm font-bold text-orange-500 uppercase tracking-widest mb-6 flex items-center gap-3">
-                            <Code size={18} /> {t('advanced_tools')}
-                        </h3>
-
-                        <div className="space-y-6">
-                            {/* JSON Tester */}
-                            <div className="bg-[#373737] p-6 rounded-xl border border-[#444746] shadow-inner">
-                                <div className="flex justify-between items-center mb-3">
-                                    <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">{t('payload_tester')}</label>
-                                </div>
-                                <textarea 
-                                    value={jsonInput}
-                                    onChange={(e) => setJsonInput(e.target.value)}
-                                    placeholder={t('payload_placeholder')}
-                                    className="w-full bg-[#2b2d30] border border-[#444746] text-gray-200 text-xs p-4 rounded-xl h-28 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono resize-none mb-3 placeholder:text-gray-500 shadow-inner"
-                                />
-                                {jsonError && <p className="text-red-400 text-xs mb-3 bg-red-500/10 p-2.5 rounded-lg border border-red-500/20 flex items-center gap-2"><X size={12}/>{jsonError}</p>}
-                                <button 
-                                    onClick={handlePayloadTest}
-                                    className="w-full flex items-center justify-center gap-2 bg-[#444746] hover:bg-[#505356] text-white text-xs font-bold py-3 rounded-xl transition-all uppercase tracking-wide shadow-sm"
-                                >
-                                    <Play size={14} /> {t('send_payload')}
-                                </button>
+                    <div className="p-6 space-y-8">
+                         {/* Setup Info */}
+                         <div className="space-y-4">
+                             <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">{t('setup_info')}</h4>
+                             <div className="bg-[#0f1113] p-4 rounded-xl border border-[#2b2d30] space-y-4">
+                                 <div>
+                                     <label className="text-xs text-gray-500 block mb-1">Webhook Endpoint URL:</label>
+                                     <div className="flex gap-2">
+                                         <code className="flex-1 bg-[#1E1F20] p-3 rounded-lg text-green-400 font-mono text-xs border border-[#2b2d30] break-all">
+                                             {dataSource === 'live' ? `${currentOrigin}/api/webhook/truemoney` : 'https://api.yourwebsite.com/webhook/truemoney'}
+                                         </code>
+                                         <button onClick={handleCopyEndpoint} className="bg-[#2b2d30] hover:bg-[#383a3e] text-white p-3 rounded-lg border border-[#444746] transition-colors">
+                                             {copied ? <Check size={16} className="text-green-500"/> : <Clipboard size={16} />}
+                                         </button>
+                                     </div>
+                                 </div>
+                                 <div className="flex justify-between items-center pt-2">
+                                     <span className="text-xs text-gray-500">{t('db_status')}:</span>
+                                     <span className={`text-xs font-bold px-2 py-1 rounded border ${dbStatus.includes('Connected') ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
+                                         {dbStatus}
+                                     </span>
+                                 </div>
+                             </div>
+                         </div>
+                         
+                         {/* Tokens */}
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                 <label className="text-sm font-bold text-gray-400 uppercase tracking-wider">{t('verification_secret')}</label>
+                                 <div className="flex gap-2">
+                                     <input 
+                                         type="text" 
+                                         value={verificationSecret}
+                                         onChange={(e) => setVerificationSecret(e.target.value)}
+                                         placeholder={t('verification_placeholder')}
+                                         className="flex-1 bg-[#2b2d30] border border-[#444746] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 text-sm"
+                                     />
+                                     <button onClick={handleSaveSecret} className="bg-green-600 hover:bg-green-500 text-white px-4 rounded-xl font-bold transition-colors"><Check size={18} /></button>
+                                 </div>
+                                 {isVerified && <div className="text-xs text-green-400 flex items-center gap-1 mt-1"><Check size={12}/> {t('verified')}</div>}
                             </div>
-
-                            {/* AI Analysis */}
-                            <div className="bg-[#373737] p-6 rounded-xl border border-[#444746] shadow-inner">
-                                <div className="flex justify-between items-center mb-3">
-                                    <label className="text-xs text-gray-400 font-bold uppercase flex items-center gap-2 tracking-wide">
-                                        <Sparkles size={14} className="text-purple-400" /> {t('ai_analysis')}
-                                    </label>
-                                    <button 
-                                        onClick={handleGeminiAnalysis}
-                                        disabled={analyzing}
-                                        className="text-[10px] text-purple-400 hover:text-purple-300 underline disabled:opacity-50 font-medium"
-                                    >
-                                        {analyzing ? t('thinking') : t('analyze_btn')}
-                                    </button>
-                                </div>
-                                <div className="bg-[#2b2d30] p-4 rounded-xl min-h-[70px] text-sm text-gray-400 border border-[#444746] leading-relaxed italic shadow-inner">
-                                    {analysis || "AI analysis of your transactions will appear here..."}
-                                </div>
+                            <div className="space-y-2">
+                                 <label className="text-sm font-bold text-gray-400 uppercase tracking-wider">{t('service_token')}</label>
+                                 <div className="flex gap-2">
+                                     <input 
+                                         type="text" 
+                                         value={serviceToken}
+                                         onChange={(e) => setServiceToken(e.target.value)}
+                                         placeholder={t('service_token_placeholder')}
+                                         className="flex-1 bg-[#2b2d30] border border-[#444746] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 text-sm"
+                                     />
+                                     <button onClick={handleSaveServiceToken} className="bg-green-600 hover:bg-green-500 text-white px-4 rounded-xl font-bold transition-colors"><Check size={18} /></button>
+                                 </div>
                             </div>
-                        </div>
+                         </div>
+                         
+                         {/* Simulator */}
+                         <div className="pt-6 border-t border-[#2b2d30]">
+                             <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">{t('simulator')}</h4>
+                             <button 
+                                onClick={handleSimulateWebhook}
+                                className="w-full bg-[#2b2d30] hover:bg-[#383a3e] border border-[#444746] hover:border-gray-500 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-3 transition-all group"
+                             >
+                                <Play size={20} className="text-orange-500 group-hover:scale-110 transition-transform" /> {t('simulate_btn')}
+                             </button>
+                             <div className="mt-2 text-center text-xs text-gray-500">{t('simulate_desc')} <strong>{dataSource === 'mock' ? 'Local' : 'Live API'}</strong></div>
+                         </div>
                     </div>
-
+                </div>
+            )}
+            
+            {/* Clear Data (Dev/Admin) */}
+            {isAdmin && (
+                <div className="flex justify-center pt-8 pb-12">
+                    <button 
+                        onClick={handleClearData}
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 px-6 py-2 rounded-full text-sm font-medium transition-colors border border-transparent hover:border-red-500/20"
+                    >
+                        {t('clear')}
+                    </button>
                 </div>
             )}
         </div>
       )}
 
-      {/* Services Tab */}
-      {activeTab === 'services' && isDev && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 animate-in fade-in zoom-in-95 duration-300">
-            <div 
-                className="bg-[#454545] p-8 rounded-2xl border border-[#444746] flex flex-col items-center text-center hover:border-orange-500/50 hover:shadow-2xl transition-all cursor-pointer group shadow-lg"
-                onClick={() => setActiveTab('dashboard')}
-            >
-                <div className="bg-orange-500/10 p-6 rounded-full mb-6 text-orange-500 group-hover:bg-orange-600 group-hover:text-white transition-all shadow-inner border border-orange-500/20">
-                    <BellRing size={40} />
-                </div>
-                <h3 className="text-white font-bold text-lg mb-2">{t('svc_incoming')}</h3>
-                <p className="text-sm text-gray-400 mb-6 font-medium">{t('svc_incoming_desc')}</p>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-green-500/10 text-green-400 px-3 py-1.5 rounded-full border border-green-500/20">{t('active')}</span>
-            </div>
-            
-            <div className="bg-[#454545] p-8 rounded-2xl border border-[#444746] flex flex-col items-center text-center opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all cursor-pointer shadow-lg">
-                <div className="bg-[#373737] p-6 rounded-full mb-6 text-gray-400 shadow-inner border border-[#444746]">
-                    <Smartphone size={40} />
-                </div>
-                <h3 className="text-white font-bold text-lg mb-2">{t('svc_outgoing')}</h3>
-                <p className="text-sm text-gray-400 mb-6 font-medium">{t('svc_outgoing_desc')}</p>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-[#373737] text-gray-400 px-3 py-1.5 rounded-full border border-[#444746]">{t('soon')}</span>
-            </div>
-
-            <div 
-                className="bg-[#454545] p-8 rounded-2xl border border-[#444746] flex flex-col items-center text-center hover:border-blue-400/50 hover:shadow-2xl transition-all cursor-pointer group shadow-lg"
-                onClick={handleCheckBalance}
-            >
-                <div className="bg-[#373737] p-6 rounded-full mb-6 text-gray-400 group-hover:bg-blue-500 group-hover:text-white transition-all shadow-inner border border-[#444746]">
-                    <Wallet size={40} />
-                </div>
-                <h3 className="text-white font-bold text-lg mb-2">{t('svc_balance')}</h3>
-                <p className="text-sm text-gray-400 mb-6 font-medium">{t('svc_balance_desc')}</p>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-400 px-3 py-1.5 rounded-full border border-blue-500/20">{t('demo')}</span>
-            </div>
-
-            <div 
-                className="bg-[#454545] p-8 rounded-2xl border border-[#444746] flex flex-col items-center text-center hover:border-orange-500/50 hover:shadow-2xl transition-all cursor-pointer group shadow-lg"
-                onClick={handleCheckLastTx}
-            >
-                <div className="bg-orange-500/10 p-6 rounded-full mb-6 text-orange-500 group-hover:bg-orange-600 group-hover:text-white transition-all shadow-inner border border-orange-500/20">
-                    <History size={40} />
-                </div>
-                <h3 className="text-white font-bold text-lg mb-2">{t('svc_last_tx')}</h3>
-                <p className="text-sm text-gray-400 mb-6 font-medium">{t('svc_last_tx_desc')}</p>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-purple-500/10 text-purple-400 px-3 py-1.5 rounded-full border border-purple-500/20">{t('api')}</span>
-            </div>
-        </div>
-      )}
-
-      {/* Reports Tab */}
+      {/* REPORTS TAB (Admin/Dev) */}
       {activeTab === 'reports' && isAdmin && (
-          <div className="space-y-6 animate-in fade-in">
-              {/* Chart Section */}
-              <div className="bg-[#454545] border border-[#444746] rounded-2xl p-6 shadow-xl">
-                  <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                      <BarChart3 className="text-orange-500" size={28} /> {t('report_daily_income')}
-                  </h2>
-                  <div className="h-[350px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={chartData}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#505356" opacity={0.5} />
-                              <XAxis dataKey="date" stroke="#9CA3AF" fontSize={12} tickLine={false} />
-                              <YAxis stroke="#9CA3AF" fontSize={12} tickLine={false} tickFormatter={(value) => `฿${value/1000}k`} />
-                              <Tooltip 
-                                  contentStyle={{ backgroundColor: '#2b2d30', borderColor: '#444746', borderRadius: '10px' }}
-                                  itemStyle={{ color: '#F97316' }}
-                                  labelStyle={{ color: '#9CA3AF' }}
-                                  formatter={(value: number) => [`฿${value.toLocaleString()}`, t('amount')]}
-                              />
-                              <Bar dataKey="amount" fill="#F97316" radius={[4, 4, 0, 0]} />
-                          </BarChart>
-                      </ResponsiveContainer>
+          <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Daily Report Chart */}
+                  <div className="bg-[#1E1F20] p-6 rounded-3xl border border-[#444746] md:col-span-2">
+                      <h3 className="text-lg font-bold text-gray-100 mb-6 flex items-center gap-2">
+                          <BarChart3 size={20} className="text-orange-500"/> {t('report_daily_income')}
+                      </h3>
+                      <div className="h-[300px] w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={dailyReportData.slice().reverse()}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#444746" vertical={false} />
+                                  <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
+                                  <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `฿${val/1000}k`} />
+                                  <Tooltip 
+                                      contentStyle={{ backgroundColor: '#2b2d30', borderColor: '#444746', color: '#fff' }}
+                                      itemStyle={{ color: '#fb923c' }}
+                                      formatter={(value: number) => [`฿ ${value.toLocaleString()}`, 'Total']}
+                                  />
+                                  <Bar dataKey="total" fill="#f97316" radius={[4, 4, 0, 0]} />
+                              </BarChart>
+                          </ResponsiveContainer>
+                      </div>
                   </div>
-              </div>
+                  
+                  {/* Monthly Summary Table */}
+                  <div className="bg-[#1E1F20] rounded-3xl border border-[#444746] overflow-hidden h-fit">
+                      <div className="p-5 border-b border-[#444746] bg-[#2b2d30]">
+                          <h3 className="text-base font-bold text-gray-100">{t('summary_month_3')}</h3>
+                      </div>
+                      <div className="divide-y divide-[#2b2d30]">
+                          <div className="grid grid-cols-3 p-3 text-xs font-bold text-gray-500 uppercase">
+                              <div>{t('report_month')}</div>
+                              <div className="text-center">{t('report_count')}</div>
+                              <div className="text-right">{t('report_total')}</div>
+                          </div>
+                          {monthlyReportData.map((m, i) => (
+                              <div key={i} className="grid grid-cols-3 p-4 text-sm hover:bg-[#2b2d30]/50 transition-colors">
+                                  <div className="font-bold text-gray-300">{m.name}</div>
+                                  <div className="text-center text-gray-400">{m.count}</div>
+                                  <div className="text-right font-bold text-orange-400">฿ {m.total.toLocaleString()}</div>
+                              </div>
+                          ))}
+                      </div>
+                  </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Monthly Summary Table (Last 3 Months) */}
-                <div className="bg-[#454545] border border-[#444746] rounded-2xl overflow-hidden shadow-xl">
-                    <div className="p-5 bg-[#373737] border-b border-[#444746] text-sm font-bold text-orange-500 uppercase tracking-widest">
-                        {t('summary_month_3')}
-                    </div>
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-[#373737]/50 text-gray-400 text-xs font-bold uppercase tracking-widest">
-                                <th className="p-5">{t('report_month')}</th>
-                                <th className="p-5 text-center">{t('report_count')}</th>
-                                <th className="p-5 text-right">{t('report_total')}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="text-sm text-gray-200 divide-y divide-[#444746] bg-[#454545]">
-                            {monthlyStats.map((month, idx) => (
-                                <tr key={idx} className="hover:bg-[#373737] transition-colors">
-                                    <td className="p-5 font-medium text-white">{month.monthName}</td>
-                                    <td className="p-5 text-center font-bold text-gray-400">{month.count}</td>
-                                    <td className="p-5 text-right font-bold text-green-400 font-mono">฿ {month.amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
-                                </tr>
+                  {/* Daily Detail Table */}
+                  <div className="bg-[#1E1F20] rounded-3xl border border-[#444746] overflow-hidden max-h-[400px] flex flex-col">
+                      <div className="p-5 border-b border-[#444746] bg-[#2b2d30] shrink-0">
+                          <h3 className="text-base font-bold text-gray-100">{t('summary_today')} (History)</h3>
+                      </div>
+                      <div className="overflow-y-auto">
+                        <div className="divide-y divide-[#2b2d30]">
+                            {dailyReportData.map((d, i) => (
+                                <div key={i} className="flex justify-between items-center p-4 hover:bg-[#2b2d30]/50 transition-colors">
+                                    <div className="flex flex-col">
+                                        <span className="font-bold text-gray-300 text-sm">{d.name}</span>
+                                        <span className="text-xs text-gray-500">{d.count} items</span>
+                                    </div>
+                                    <span className="font-bold text-green-400">฿ {d.total.toLocaleString()}</span>
+                                </div>
                             ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Daily Summary Table */}
-                <div className="bg-[#454545] border border-[#444746] rounded-2xl overflow-hidden shadow-xl flex flex-col">
-                    <div className="p-5 bg-[#373737] border-b border-[#444746] text-sm font-bold text-orange-500 uppercase tracking-widest">
-                        {t('report_daily_income')}
-                    </div>
-                    <div className="max-h-[400px] overflow-y-auto">
-                        <table className="w-full text-left border-collapse relative">
-                            <thead className="sticky top-0 bg-[#373737] shadow-sm z-10">
-                                <tr className="text-gray-400 text-xs font-bold uppercase tracking-widest">
-                                    <th className="p-5">{t('report_date')}</th>
-                                    <th className="p-5 text-center">{t('report_count')}</th>
-                                    <th className="p-5 text-right">{t('report_total')}</th>
-                                </tr>
-                            </thead>
-                            <tbody className="text-sm text-gray-200 divide-y divide-[#444746] bg-[#454545]">
-                                {chartData.slice().reverse().map((day, idx) => (
-                                    <tr key={idx} className="hover:bg-[#373737] transition-colors">
-                                        <td className="p-5 font-mono text-orange-50">{day.date}</td>
-                                        <td className="p-5 text-center font-bold">{day.count}</td>
-                                        <td className="p-5 text-right font-bold text-white font-mono">฿ {day.amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                        </div>
+                      </div>
+                  </div>
               </div>
           </div>
       )}
 
-      {/* Users Tab */}
+      {/* SERVICES TAB (Dev Only) */}
+      {activeTab === 'services' && isDev && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-[#1E1F20] p-6 rounded-3xl border border-[#444746] hover:border-orange-500/50 transition-all group">
+                  <div className="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center mb-4 group-hover:bg-orange-500/20 transition-colors">
+                      <BellRing className="text-orange-500" size={24} />
+                  </div>
+                  <h3 className="font-bold text-gray-100 mb-1">{t('svc_incoming')}</h3>
+                  <p className="text-xs text-gray-500 mb-4">{t('svc_incoming_desc')}</p>
+                  <span className="inline-block px-3 py-1 rounded-full bg-green-500/10 text-green-400 text-xs font-bold border border-green-500/20">{t('active')}</span>
+              </div>
+              <div className="bg-[#1E1F20] p-6 rounded-3xl border border-[#444746] hover:border-orange-500/50 transition-all group opacity-60">
+                   <div className="w-12 h-12 rounded-full bg-gray-700/30 flex items-center justify-center mb-4">
+                      <Smartphone className="text-gray-500" size={24} />
+                  </div>
+                  <h3 className="font-bold text-gray-100 mb-1">{t('svc_outgoing')}</h3>
+                  <p className="text-xs text-gray-500 mb-4">{t('svc_outgoing_desc')}</p>
+                  <span className="inline-block px-3 py-1 rounded-full bg-gray-700/50 text-gray-400 text-xs font-bold border border-gray-600">{t('soon')}</span>
+              </div>
+              <div className="bg-[#1E1F20] p-6 rounded-3xl border border-[#444746] hover:border-orange-500/50 transition-all group">
+                   <div className="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center mb-4 group-hover:bg-orange-500/20 transition-colors">
+                      <Wallet className="text-orange-500" size={24} />
+                  </div>
+                  <h3 className="font-bold text-gray-100 mb-1">{t('svc_balance')}</h3>
+                  <p className="text-xs text-gray-500 mb-4">{t('svc_balance_desc')}</p>
+                  <button onClick={handleCheckBalance} className="text-xs font-bold text-orange-500 hover:text-orange-400">{t('demo')}</button>
+              </div>
+              <div className="bg-[#1E1F20] p-6 rounded-3xl border border-[#444746] hover:border-orange-500/50 transition-all group">
+                   <div className="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center mb-4 group-hover:bg-orange-500/20 transition-colors">
+                      <History className="text-orange-500" size={24} />
+                  </div>
+                  <h3 className="font-bold text-gray-100 mb-1">{t('svc_last_tx')}</h3>
+                  <p className="text-xs text-gray-500 mb-4">{t('svc_last_tx_desc')}</p>
+                  <button onClick={handleCheckLastTx} className="inline-block px-3 py-1 rounded-full bg-purple-500/10 text-purple-400 text-xs font-bold border border-purple-500/20 hover:bg-purple-500/20">{t('api')}</button>
+              </div>
+          </div>
+      )}
+
+      {/* USERS TAB (Admin/Dev) */}
       {activeTab === 'users' && isAdmin && (
-          <div className="bg-[#454545] border border-[#444746] rounded-2xl p-6 shadow-xl animate-in fade-in">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-5">
-                  <h2 className="text-xl font-bold text-white flex items-center gap-3">
-                      <Users className="text-orange-500" size={28} /> {t('user_management')}
-                  </h2>
-                  <button 
-                    onClick={() => openUserModal()}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-orange-900/40"
-                  >
-                      <Plus size={18} /> {t('add_user')}
+          <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-bold text-gray-100">{t('user_management')}</h3>
+                  <button onClick={() => openUserModal()} className="bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2">
+                      <Plus size={16} /> {t('add_user')}
                   </button>
               </div>
-
-              <div className="overflow-hidden rounded-xl border border-[#444746] shadow-lg">
-                  <table className="w-full text-left border-collapse">
-                      <thead>
-                          <tr className="bg-[#373737] text-gray-400 text-xs font-bold uppercase tracking-widest">
-                              <th className="p-5">{t('username')}</th>
-                              <th className="p-5 hidden sm:table-cell">{t('role')}</th>
-                              <th className="p-5 text-right"></th>
+              
+              <div className="bg-[#1E1F20] rounded-3xl border border-[#444746] overflow-hidden">
+                  <table className="w-full text-left">
+                      <thead className="bg-[#2b2d30] border-b border-[#444746]">
+                          <tr>
+                              <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">{t('username')}</th>
+                              <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">{t('role')}</th>
+                              <th className="p-5 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">Actions</th>
                           </tr>
                       </thead>
-                      <tbody className="text-sm text-gray-200 divide-y divide-[#444746] bg-[#454545]">
-                          {filteredUsersList.map(u => (
-                              <tr key={u.id} className="hover:bg-[#373737] transition-colors">
+                      <tbody className="divide-y divide-[#2b2d30]">
+                          {usersList
+                              .filter(u => isDev || u.role !== 'dev') // Admin hides Devs
+                              .map(u => (
+                              <tr key={u.id} className="hover:bg-[#2b2d30]/50 transition-colors">
+                                  <td className="p-5 font-medium text-gray-200">{u.username}</td>
                                   <td className="p-5">
-                                      <div className="font-bold text-lg text-white">{u.username}</div>
-                                      <div className="sm:hidden mt-2">
-                                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border ${u.role === 'dev' ? 'bg-red-500/10 text-red-400 border-red-500/20' : u.role === 'admin' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
-                                              {u.role === 'dev' ? t('role_dev') : u.role === 'admin' ? t('role_admin') : t('role_staff')}
-                                          </span>
-                                      </div>
-                                  </td>
-                                  <td className="p-5 hidden sm:table-cell">
-                                      <span className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide border ${u.role === 'dev' ? 'bg-red-500/10 text-red-400 border-red-500/20' : u.role === 'admin' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
-                                          {u.role === 'dev' ? t('role_dev') : u.role === 'admin' ? t('role_admin') : t('role_staff')}
+                                      <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${
+                                          u.role === 'dev' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
+                                          u.role === 'admin' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' :
+                                          'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                      }`}>
+                                          {t(`role_${u.role}`)}
                                       </span>
                                   </td>
-                                  <td className="p-5 flex justify-end gap-3">
-                                      {/* Admin can edit Staff. Dev can edit everyone. */}
-                                      {(isDev || (isAdmin && u.role === 'staff')) && (
-                                        <button 
-                                            onClick={() => openUserModal(u)}
-                                            className="p-2.5 hover:bg-[#444746] rounded-lg text-gray-400 hover:text-white transition-colors border border-transparent hover:border-[#505356]"
-                                        >
-                                            <Edit size={18} />
-                                        </button>
-                                      )}
-                                      
-                                      {(isDev || (isAdmin && u.role === 'staff')) && (
-                                        <button 
-                                            onClick={() => handleDeleteUser(u.id)}
-                                            className="p-2.5 hover:bg-red-500/20 rounded-lg text-red-400 hover:text-red-300 transition-colors border border-transparent hover:border-red-500/30"
-                                            disabled={u.username.toLowerCase() === 'owner'}
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
+                                  <td className="p-5 text-right flex justify-end gap-2">
+                                      <button onClick={() => openUserModal(u)} className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"><Edit size={16}/></button>
+                                      {/* Prevent deleting yourself or Dev/Owner if not Dev */}
+                                      {u.username !== user.username && (isDev || u.role !== 'admin') && (
+                                          <button onClick={() => handleDeleteUser(u.id)} className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg"><Trash2 size={16}/></button>
                                       )}
                                   </td>
                               </tr>
@@ -1333,104 +1275,76 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           </div>
       )}
 
-      {/* Code Tab */}
+      {/* CODE TAB (Dev Only) */}
       {activeTab === 'code' && isDev && (
-        <div className="bg-[#1a1a1a] rounded-2xl border border-[#444746] overflow-hidden shadow-2xl animate-in fade-in">
-             <div className="bg-[#2b2d30] px-5 py-4 border-b border-[#444746] flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                    <div className="flex gap-2">
-                        <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50"></div>
-                        <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
-                        <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50"></div>
-                    </div>
-                    <span className="text-xs font-mono text-gray-400 ml-2 font-medium">api/index.js</span>
-                </div>
-                <button 
-                    onClick={handleCopyBackendCode}
-                    className="text-xs bg-[#444746] hover:bg-[#505356] text-gray-300 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors border border-[#505356] font-bold uppercase tracking-wide"
-                >
-                    {codeCopied ? <Check size={16} className="text-green-500"/> : <Clipboard size={16} />} {t('copy')}
+        <div className="bg-[#1E1F20] rounded-3xl border border-[#444746] overflow-hidden">
+            <div className="p-4 bg-[#2b2d30] border-b border-[#444746] flex justify-between items-center">
+                <span className="text-xs font-mono text-gray-400">api/index.js (Backend Logic)</span>
+                <button onClick={handleCopyBackendCode} className="text-xs text-gray-400 hover:text-white flex items-center gap-1">
+                    {codeCopied ? <Check size={14}/> : <Clipboard size={14}/>} Copy
                 </button>
-             </div>
-             <div className="p-0 overflow-x-auto bg-[#1a1a1a]">
-                 <pre className="text-xs md:text-sm font-mono text-gray-300 p-8 leading-relaxed whitespace-pre-wrap">
-                    <code className="language-javascript">{backendCodeString}</code>
-                 </pre>
-             </div>
+            </div>
+            <div className="p-0 overflow-x-auto">
+<pre className="text-xs font-mono text-gray-300 p-6 leading-relaxed">
+{`// Express.js Backend for Vercel
+app.post('/api/webhook/truemoney', async (req, res) => {
+  try {
+    const token = req.body.message || req.body.token;
+    // Decode JWT or Parse JSON...
+    const data = decode(token);
+    
+    // Save to Database
+    await Transaction.create({
+       sender: data.sender_mobile,
+       amount: data.amount,
+       message: data.message
+    });
+    
+    res.status(200).send({ status: 'success' });
+  } catch (err) {
+    res.status(500).send({ error: err.message });
+  }
+});`}
+</pre>
+            </div>
         </div>
       )}
 
       {/* User Modal */}
       {isUserModalOpen && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-              <div className="bg-[#454545] rounded-2xl shadow-2xl border border-[#444746] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                  <div className="px-6 py-5 border-b border-[#444746] flex justify-between items-center bg-[#373737]">
-                      <h3 className="text-white font-bold text-lg">{editingUser ? t('edit_user') : t('new_user')}</h3>
-                      <button onClick={() => setIsUserModalOpen(false)} className="text-gray-400 hover:text-white transition-colors">
-                          <X size={24} />
-                      </button>
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm p-4">
+               <div className="bg-[#1E1F20] rounded-3xl shadow-2xl border border-[#444746] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                  <div className="p-6 border-b border-[#444746] flex justify-between items-center bg-[#2b2d30]">
+                      <h3 className="text-lg font-bold text-gray-100">{editingUser ? t('edit_user') : t('new_user')}</h3>
+                      <button onClick={() => setIsUserModalOpen(false)} className="text-gray-400 hover:text-white"><X size={20}/></button>
                   </div>
-                  <form onSubmit={handleUserSubmit} className="p-8 space-y-5">
-                      {userFormError && (
-                          <div className="bg-red-500/10 text-red-300 text-sm p-3 rounded-xl border border-red-500/20 flex items-center gap-2">
-                              <X size={16} /> {userFormError}
-                          </div>
-                      )}
-                      <div>
-                          <label className="block text-gray-400 text-xs font-bold uppercase mb-2 tracking-wide">{t('username')}</label>
-                          <input 
-                              type="text" 
-                              required
-                              value={userForm.username}
-                              onChange={e => setUserForm({...userForm, username: e.target.value})}
-                              className="w-full bg-[#373737] border border-[#444746] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors text-base"
-                          />
-                      </div>
-                      <div>
-                          <label className="block text-gray-400 text-xs font-bold uppercase mb-2 tracking-wide">{t('password')}</label>
-                          <input 
-                              type="text" 
-                              required
-                              value={userForm.password}
-                              onChange={e => setUserForm({...userForm, password: e.target.value})}
-                              className="w-full bg-[#373737] border border-[#444746] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors text-base"
-                          />
-                      </div>
-                      <div>
-                          <label className="block text-gray-400 text-xs font-bold uppercase mb-2 tracking-wide">{t('role')}</label>
-                          <div className="relative">
-                            <select 
-                                value={userForm.role}
-                                onChange={e => setUserForm({...userForm, role: e.target.value as 'dev'|'admin'|'staff'})}
-                                className="w-full bg-[#373737] border border-[#444746] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors appearance-none text-base"
-                            >
-                                <option value="staff">{t('role_staff')}</option>
-                                {/* Admin can create Staff. Dev can create everything. */}
-                                {(isDev || user.role === 'admin') && <option value="admin">{t('role_admin')}</option>}
-                                {isDev && <option value="dev">{t('role_dev')}</option>}
-                            </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
-                                <ChevronRight size={16} className="rotate-90" />
-                            </div>
-                          </div>
-                      </div>
-                      <div className="pt-6 flex justify-end gap-3">
-                          <button 
-                            type="button" 
-                            onClick={() => setIsUserModalOpen(false)}
-                            className="px-5 py-2.5 bg-[#373737] hover:bg-[#444746] text-gray-300 rounded-xl text-sm font-bold transition-colors border border-[#444746]"
-                          >
-                              {t('cancel')}
-                          </button>
-                          <button 
-                            type="submit" 
-                            className="px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-sm font-bold transition-colors shadow-lg shadow-orange-900/40"
-                          >
-                              {t('save_user')}
-                          </button>
-                      </div>
+                  <form onSubmit={handleUserSubmit} className="p-6 space-y-4">
+                       {userFormError && <div className="bg-red-500/10 text-red-400 text-sm p-3 rounded-xl border border-red-500/20">{userFormError}</div>}
+                       <div>
+                           <label className="block text-xs font-bold text-gray-400 uppercase mb-1">{t('username')}</label>
+                           <input type="text" required value={userForm.username} onChange={e => setUserForm({...userForm, username: e.target.value})} className="w-full bg-[#2b2d30] border border-[#444746] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500" />
+                       </div>
+                       <div>
+                           <label className="block text-xs font-bold text-gray-400 uppercase mb-1">{t('password')}</label>
+                           <input type="text" required={!editingUser} value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} placeholder={editingUser ? "(Unchanged)" : ""} className="w-full bg-[#2b2d30] border border-[#444746] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-orange-500" />
+                       </div>
+                       <div>
+                           <label className="block text-xs font-bold text-gray-400 uppercase mb-1">{t('role')}</label>
+                           <div className="grid grid-cols-3 gap-2">
+                               {/* Dev Role: Only visible if current user is Dev */}
+                               {isDev && (
+                                   <button type="button" onClick={() => setUserForm({...userForm, role: 'dev'})} className={`px-2 py-2 rounded-lg text-xs font-bold border ${userForm.role === 'dev' ? 'bg-purple-500/20 border-purple-500 text-purple-400' : 'bg-[#2b2d30] border-[#444746] text-gray-400'}`}>Dev</button>
+                               )}
+                               {/* Admin Role: Visible if Dev OR Admin */}
+                               {(isDev || isAdmin) && (
+                                   <button type="button" onClick={() => setUserForm({...userForm, role: 'admin'})} className={`px-2 py-2 rounded-lg text-xs font-bold border ${userForm.role === 'admin' ? 'bg-orange-500/20 border-orange-500 text-orange-400' : 'bg-[#2b2d30] border-[#444746] text-gray-400'}`}>Admin</button>
+                               )}
+                               <button type="button" onClick={() => setUserForm({...userForm, role: 'staff'})} className={`px-2 py-2 rounded-lg text-xs font-bold border ${userForm.role === 'staff' ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'bg-[#2b2d30] border-[#444746] text-gray-400'}`}>Staff</button>
+                           </div>
+                       </div>
+                       <button type="submit" className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-xl mt-4">{t('save_user')}</button>
                   </form>
-              </div>
+               </div>
           </div>
       )}
 

@@ -25,6 +25,9 @@ const translations: Record<Language, Record<string, string>> = {
     "copy": "คัดลอก",
     "sound_on": "เสียง: เปิด",
     "sound_off": "เสียง: ปิด",
+    "confirm_delete_tx": "คุณต้องการลบรายการนี้ใช่หรือไม่?",
+    "confirm_status_change": "ยืนยันการเปลี่ยนสถานะ? เมื่อเปลี่ยนแล้วจะไม่สามารถแก้ไขได้",
+    "status_locked_staff": "สถานะถูกล็อกไว้ (แก้ไขได้โดย Admin/Dev)",
     
     // Search & Export
     "search_placeholder": "ค้นหาเบอร์โทร, ข้อความ หรือจำนวนเงิน...",
@@ -150,6 +153,9 @@ const translations: Record<Language, Record<string, string>> = {
     "copy": "Copy",
     "sound_on": "Sound: On",
     "sound_off": "Sound: Off",
+    "confirm_delete_tx": "Are you sure you want to delete this transaction?",
+    "confirm_status_change": "Confirm status change? This cannot be undone.",
+    "status_locked_staff": "Status locked (Editable by Admin/Dev)",
 
     // Search & Export
     "search_placeholder": "Search phone, message or amount...",

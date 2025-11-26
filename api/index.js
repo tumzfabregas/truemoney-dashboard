@@ -246,7 +246,23 @@ app.put('/api/transactions/:id/status', async (req, res) => {
     }
 });
 
-// Clear Data
+// Delete Individual Transaction
+app.delete('/api/transactions/:id', async (req, res) => {
+    const id = req.params.id;
+    try {
+        if (isDbConnected()) {
+            const result = await TransactionModel.deleteOne({ id: id });
+            if (result.deletedCount === 0) return res.status(404).json({ error: 'Transaction not found' });
+        } else {
+            memoryTransactions = memoryTransactions.filter(t => t.id !== id);
+        }
+        res.json({ status: 'deleted' });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Clear All Data
 app.delete('/api/transactions', async (req, res) => {
     if (isDbConnected()) {
         await TransactionModel.deleteMany({});

@@ -19,6 +19,11 @@ export const clearLiveTransactions = async (): Promise<void> => {
     await fetch('/api/transactions', { method: 'DELETE' });
 };
 
+export const deleteTransactionApi = async (id: string): Promise<void> => {
+    const response = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error('Failed to delete transaction');
+};
+
 // Helper to simulate webhook trigger VIA THE SERVER (for testing "Live" mode)
 export const triggerLiveWebhook = async (payload: any) => {
     await fetch('/api/webhook/truemoney', {
