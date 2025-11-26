@@ -11,7 +11,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // --- MongoDB Cached Connection Pattern (Best for Vercel) ---
-// Updated: Support 3-level roles (Dev, Admin, Staff)
 const MONGODB_URI = process.env.MONGODB_URI;
 
 // Global cache to prevent multiple connections in Serverless
@@ -87,22 +86,25 @@ let memorySettings = {};
 // --- Helpers ---
 const isDbConnected = () => mongoose.connection.readyState === 1;
 
-// Seed Dev/Admin if DB is empty
-const ensureAdminExists = async () => {
+// Seed Users if DB is empty
+const ensureUsersExist = async () => {
     if (isDbConnected()) {
         const count = await UserModel.countDocuments();
         if (count === 0) {
-            console.log('🌱 Seeding default Dev user...');
-            await UserModel.create({
-                id: Date.now().toString(),
-                username: 'admin',
-                password: 'admin',
-                role: 'dev' // Default to Dev for full access
-            });
+            console.log('🌱 Seeding default users...');
+            await UserModel.create([
+                { id: Date.now().toString() + '1', username: 'dev', password: 'dev', role: 'dev' },
+                { id: Date.now().toString() + '2', username: 'owner', password: 'owner', role: 'admin' },
+                { id: Date.now().toString() + '3', username: 'staff_01', password: '1234', role: 'staff' }
+            ]);
         }
     } else if (memoryUsers.length === 0 && !MONGODB_URI) {
-        console.log('🌱 Seeding memory Dev user (Local Mode)...');
-        memoryUsers.push({ id: '1', username: 'admin', password: 'admin', role: 'dev' });
+        console.log('🌱 Seeding memory users (Local Mode)...');
+        memoryUsers.push(
+            { id: '1', username: 'dev', password: 'dev', role: 'dev' },
+            { id: '2', username: 'owner', password: 'owner', role: 'admin' },
+            { id: '3', username: 'staff_01', password: '1234', role: 'staff' }
+        );
     }
 };
 
@@ -258,7 +260,7 @@ app.get('/api/balance', async (req, res) => {
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     try {
-        await ensureAdminExists();
+        await ensureUsersExist();
 
         let user = null;
         if (isDbConnected()) {
@@ -287,7 +289,7 @@ app.post('/api/login', async (req, res) => {
 
 // Get Users
 app.get('/api/users', async (req, res) => {
-    await ensureAdminExists();
+    await ensureUsersExist();
     if (isDbConnected()) {
         const users = await UserModel.find();
         res.json(users);
@@ -356,12 +358,12 @@ app.delete('/api/users/:id', async (req, res) => {
     try {
         if (isDbConnected()) {
             const userToCheck = await UserModel.findOne({ id: id }) || (mongoose.Types.ObjectId.isValid(id) ? await UserModel.findById(id) : null);
-            if (userToCheck && userToCheck.username.toLowerCase() === 'admin') return res.status(400).json({ error: 'Cannot delete admin' });
+            if (userToCheck && (userToCheck.role === 'dev' || userToCheck.username.toLowerCase() === 'admin')) return res.status(400).json({ error: 'Cannot delete admin/dev' });
             
             if (userToCheck) await UserModel.deleteOne({ _id: userToCheck._id });
         } else {
             const user = memoryUsers.find(u => u.id === id);
-            if (user && user.username.toLowerCase() === 'admin') return res.status(400).json({ error: 'Cannot delete admin' });
+            if (user && (user.role === 'dev' || user.username.toLowerCase() === 'admin')) return res.status(400).json({ error: 'Cannot delete admin/dev' });
             memoryUsers = memoryUsers.filter(u => u.id !== id);
         }
         res.json({ status: 'deleted' });

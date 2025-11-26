@@ -140,13 +140,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   }, [dataSource]);
 
   useEffect(() => {
+      // Check DB status for both Dev and Admin
       if (isAdmin) {
           checkDbStatus();
-          fetchSettings();
+          // Fetch settings only for Dev (Admin shouldn't see token anyway)
+          if (isDev) fetchSettings(); 
           const statusInterval = setInterval(checkDbStatus, 30000); 
           return () => clearInterval(statusInterval);
       }
-  }, [isAdmin, checkDbStatus, fetchSettings]);
+  }, [isAdmin, isDev, checkDbStatus, fetchSettings]);
 
   useEffect(() => {
       if (dataSource === 'live' && isAdmin) {
@@ -404,7 +406,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           setUserForm({ username: userToEdit.username, password: userToEdit.password || '', role: userToEdit.role });
       } else {
           setEditingUser(null);
-          setUserForm({ username: '', password: '', role: 'staff' }); // Default to Staff for new users
+          setUserForm({ username: '', password: '', role: 'staff' }); 
       }
       setIsUserModalOpen(true);
   };
@@ -509,7 +511,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   today.setHours(0, 0, 0, 0);
   const totalTodayAmount = transactions
     .filter(tx => new Date(tx.date) >= today)
-    .reduce((acc, curr) => acc + curr.amount, 0);
+    .reduce((acc, curr) => acc + Number(curr.amount), 0); // Force Number conversion
 
 
   const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
@@ -780,8 +782,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 </div>
             </div>
 
-            {/* Admin Tools Section */}
-            {isAdmin && (
+            {/* Admin Tools Section (Only for Dev) */}
+            {isDev && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-10">
                     
                     {/* Left Panel: Configuration */}
@@ -870,54 +872,52 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     </div>
 
                     {/* Right Panel: Tester & AI */}
-                    {isDev && (
-                        <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-6 shadow-xl">
-                            <h3 className="text-sm font-bold text-orange-500 uppercase tracking-widest mb-6 flex items-center gap-3">
-                                <Code size={18} /> {t('advanced_tools')}
-                            </h3>
+                    <div className="bg-[#1E1F20] border border-[#444746] rounded-2xl p-6 shadow-xl">
+                        <h3 className="text-sm font-bold text-orange-500 uppercase tracking-widest mb-6 flex items-center gap-3">
+                            <Code size={18} /> {t('advanced_tools')}
+                        </h3>
 
-                            <div className="space-y-6">
-                                {/* JSON Tester */}
-                                <div className="bg-[#2b2d30] p-6 rounded-xl border border-[#444746] shadow-inner">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">{t('payload_tester')}</label>
-                                    </div>
-                                    <textarea 
-                                        value={jsonInput}
-                                        onChange={(e) => setJsonInput(e.target.value)}
-                                        placeholder={t('payload_placeholder')}
-                                        className="w-full bg-[#1a1b1d] border border-[#444746] text-gray-200 text-xs p-4 rounded-xl h-28 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono resize-none mb-3 placeholder:text-gray-600 shadow-inner"
-                                    />
-                                    {jsonError && <p className="text-red-400 text-xs mb-3 bg-red-500/10 p-2.5 rounded-lg border border-red-500/20 flex items-center gap-2"><X size={12}/>{jsonError}</p>}
+                        <div className="space-y-6">
+                            {/* JSON Tester */}
+                            <div className="bg-[#2b2d30] p-6 rounded-xl border border-[#444746] shadow-inner">
+                                <div className="flex justify-between items-center mb-3">
+                                    <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">{t('payload_tester')}</label>
+                                </div>
+                                <textarea 
+                                    value={jsonInput}
+                                    onChange={(e) => setJsonInput(e.target.value)}
+                                    placeholder={t('payload_placeholder')}
+                                    className="w-full bg-[#1a1b1d] border border-[#444746] text-gray-200 text-xs p-4 rounded-xl h-28 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono resize-none mb-3 placeholder:text-gray-600 shadow-inner"
+                                />
+                                {jsonError && <p className="text-red-400 text-xs mb-3 bg-red-500/10 p-2.5 rounded-lg border border-red-500/20 flex items-center gap-2"><X size={12}/>{jsonError}</p>}
+                                <button 
+                                    onClick={handlePayloadTest}
+                                    className="w-full flex items-center justify-center gap-2 bg-[#444746] hover:bg-[#505356] text-white text-xs font-bold py-3 rounded-xl transition-all uppercase tracking-wide shadow-sm"
+                                >
+                                    <Play size={14} /> {t('send_payload')}
+                                </button>
+                            </div>
+
+                            {/* AI Analysis */}
+                            <div className="bg-[#2b2d30] p-6 rounded-xl border border-[#444746] shadow-inner">
+                                <div className="flex justify-between items-center mb-3">
+                                    <label className="text-xs text-gray-400 font-bold uppercase flex items-center gap-2 tracking-wide">
+                                        <Sparkles size={14} className="text-purple-400" /> {t('ai_analysis')}
+                                    </label>
                                     <button 
-                                        onClick={handlePayloadTest}
-                                        className="w-full flex items-center justify-center gap-2 bg-[#444746] hover:bg-[#505356] text-white text-xs font-bold py-3 rounded-xl transition-all uppercase tracking-wide shadow-sm"
+                                        onClick={handleGeminiAnalysis}
+                                        disabled={analyzing}
+                                        className="text-[10px] text-purple-400 hover:text-purple-300 underline disabled:opacity-50 font-medium"
                                     >
-                                        <Play size={14} /> {t('send_payload')}
+                                        {analyzing ? t('thinking') : t('analyze_btn')}
                                     </button>
                                 </div>
-
-                                {/* AI Analysis */}
-                                <div className="bg-[#2b2d30] p-6 rounded-xl border border-[#444746] shadow-inner">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <label className="text-xs text-gray-400 font-bold uppercase flex items-center gap-2 tracking-wide">
-                                            <Sparkles size={14} className="text-purple-400" /> {t('ai_analysis')}
-                                        </label>
-                                        <button 
-                                            onClick={handleGeminiAnalysis}
-                                            disabled={analyzing}
-                                            className="text-[10px] text-purple-400 hover:text-purple-300 underline disabled:opacity-50 font-medium"
-                                        >
-                                            {analyzing ? t('thinking') : t('analyze_btn')}
-                                        </button>
-                                    </div>
-                                    <div className="bg-[#1a1b1d] p-4 rounded-xl min-h-[70px] text-sm text-gray-400 border border-[#444746] leading-relaxed italic shadow-inner">
-                                        {analysis || "AI analysis of your transactions will appear here..."}
-                                    </div>
+                                <div className="bg-[#1a1b1d] p-4 rounded-xl min-h-[70px] text-sm text-gray-400 border border-[#444746] leading-relaxed italic shadow-inner">
+                                    {analysis || "AI analysis of your transactions will appear here..."}
                                 </div>
                             </div>
                         </div>
-                    )}
+                    </div>
 
                 </div>
             )}

@@ -75,9 +75,11 @@ const getStoredUsers = (): User[] => {
         if (stored) return JSON.parse(stored);
     } catch (e) { console.error(e); }
 
-    // Default Users - ONLY ADMIN (Removed Staff)
+    // Default Users (Dev, Owner, Staff_01)
     const defaultUsers: User[] = [
-        { id: '1', username: 'admin', password: 'admin', role: 'admin' }
+        { id: '1', username: 'dev', password: 'dev', role: 'dev' },
+        { id: '2', username: 'owner', password: 'owner', role: 'admin' },
+        { id: '3', username: 'staff_01', password: '1234', role: 'staff' }
     ];
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(defaultUsers));
     return defaultUsers;
@@ -117,8 +119,9 @@ export const updateUser = (id: string, updates: Partial<User>) => {
 
 export const deleteUser = (id: string) => {
     let users = getStoredUsers();
-    if (users.find(u => u.id === id)?.username.toLowerCase() === 'admin') {
-         throw new Error('Cannot delete main admin');
+    const userToDelete = users.find(u => u.id === id);
+    if (userToDelete && (userToDelete.role === 'dev' || userToDelete.username.toLowerCase() === 'admin')) {
+         throw new Error('Cannot delete main admin/dev');
     }
     users = users.filter(u => u.id !== id);
     saveUsers(users);
